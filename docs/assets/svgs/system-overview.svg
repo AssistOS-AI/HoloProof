@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="360" viewBox="0 0 1100 360" role="img" aria-labelledby="title desc">
+  <title id="title">HoloProof system overview</title>
+  <desc id="desc">Pipeline from user input to solver-backed response with a shared world and knowledge base.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1f2937"/>
+    </marker>
+    <style>
+      .box { fill: #f8fafc; stroke: #1f2937; stroke-width: 2; rx: 12; ry: 12; }
+      .core { fill: #e0f2fe; }
+      .store { fill: #fef3c7; }
+      .label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 16px; fill: #111827; }
+      .small { font-size: 13px; fill: #374151; }
+      .line { stroke: #1f2937; stroke-width: 2.2; marker-end: url(#arrow); fill: none; }
+    </style>
+  </defs>
+
+  <rect class="box" x="20" y="130" width="170" height="90"/>
+  <text class="label" x="105" y="168" text-anchor="middle">User Input</text>
+  <text class="small" x="105" y="190" text-anchor="middle">Query + Ingestion</text>
+
+  <rect class="box" x="230" y="130" width="190" height="90"/>
+  <text class="label" x="325" y="168" text-anchor="middle">LLM Encoders</text>
+  <text class="small" x="325" y="190" text-anchor="middle">Structured proposals</text>
+
+  <rect class="box" x="460" y="130" width="170" height="90"/>
+  <text class="label" x="545" y="168" text-anchor="middle">Intuition</text>
+  <text class="small" x="545" y="190" text-anchor="middle">VSA/HDC ranking</text>
+
+  <rect class="box core" x="670" y="120" width="220" height="110"/>
+  <text class="label" x="780" y="162" text-anchor="middle">Reasoning Core</text>
+  <text class="small" x="780" y="184" text-anchor="middle">SMT strategies + budgets</text>
+  <text class="small" x="780" y="202" text-anchor="middle">Z3 / CVC5 adapters</text>
+
+  <rect class="box" x="930" y="130" width="150" height="90"/>
+  <text class="label" x="1005" y="168" text-anchor="middle">Response</text>
+  <text class="small" x="1005" y="190" text-anchor="middle">Evidence-aware NL</text>
+
+  <rect class="box store" x="360" y="265" width="380" height="70"/>
+  <text class="label" x="550" y="294" text-anchor="middle">World Manager + Versioned Knowledge Base</text>
+  <text class="small" x="550" y="315" text-anchor="middle">Provenance, snapshots, accepted/proposed/contested layers</text>
+
+  <path class="line" d="M190 175 L230 175"/>
+  <path class="line" d="M420 175 L460 175"/>
+  <path class="line" d="M630 175 L670 175"/>
+  <path class="line" d="M890 175 L930 175"/>
+
+  <path class="line" d="M545 265 L545 220"/>
+  <path class="line" d="M705 265 L740 230"/>
+  <path class="line" d="M430 265 L505 220"/>
+</svg>

@@ -1,0 +1,42 @@
+# AGENTS.md
+
+## Project Name
+
+HoloProof.
+
+## Language Policy
+
+Interactive collaboration can be in Romanian or English.
+
+All persistent project artifacts must be in English only. This rule applies to source code, code comments, Markdown documentation, HTML documentation, design specifications, and any user-facing static content stored in the repository.
+
+## Specification Map
+
+The project specification map is organized under `docs/specs/` and currently includes:
+
+- `docs/specs/DS001-Vision.md`
+- `docs/specs/DS002-Architecture.md`
+- `docs/specs/DS003-Worlds-KB-Forking.md`
+- `docs/specs/DS004-Reasoning-Intuition-LLM.md`
+- `docs/specs/DS005-Implementation-Validation.md`
+- `docs/specs/DS006-Chat-Examples-Experience.md`
+- `evals/DS100-Evaluation-Suite-Plan.md`
+- `eval/runEval.mjs`
+
+Documentation entry points:
+
+- `docs/index.html` is the main specification index.
+- `docs/loader.html` loads and renders `.md` files for fast browser viewing.
+- `docs/installation.html` describes installation prerequisites and local setup flow.
+- `docs/usage-guide.html` provides usage guidance and an interactive chat/examples demo.
+- `eval/README.md` describes evaluation runner usage and output artifacts.
+
+## Strategy and Integration Rules
+
+HoloProof is strategy-oriented and should support multiple interchangeable backends where possible.
+
+For formal reasoning, keep a common adapter interface and allow at least `z3` and `cvc5` implementations.
+
+For LLM functionality, reuse the API from the parent folder `../AchillesAgentLib` (not custom ad-hoc provider calls in core modules). The expected integration style is through the `LLMAgent` abstraction and its existing fast/deep model-routing support.
+
+Evaluation runs must benchmark strategy combinations across SMT, VSA, and Intuition implementation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.

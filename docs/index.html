@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoloProof Documentation</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0c4a6e;
+    }
+    body {
+      margin: 0;
+      padding: 32px 18px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(160deg, #f8fafc 0%, #e2e8f0 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+    }
+    p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 0;
+    }
+    .spec-list a {
+      display: block;
+      margin: 10px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      text-decoration: none;
+      color: var(--text);
+      background: #f8fafc;
+    }
+    .spec-list a:hover {
+      border-color: var(--accent);
+      background: #ecfeff;
+    }
+    .hint {
+      margin-top: 18px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>HoloProof Documentation</h1>
+    <p>
+      This page is the main documentation index.
+      Specifications are opened through <code>loader.html</code>, and installation is available as a dedicated HTML guide.
+    </p>
+    <p>
+      Repository-level overview for GitHub is available in <code>README.md</code>.
+    </p>
+
+    <div class="spec-list">
+      <a href="installation.html">Installation Guide</a>
+      <a href="usage-guide.html">Usage Guide (Chat + Examples Demo)</a>
+      <a href="loader.html?doc=specs/DS001-Vision.md">DS001 - Vision</a>
+      <a href="loader.html?doc=specs/DS002-Architecture.md">DS002 - Architecture</a>
+      <a href="loader.html?doc=specs/DS003-Worlds-KB-Forking.md">DS003 - Worlds, Knowledge Base, and Forking</a>
+      <a href="loader.html?doc=specs/DS004-Reasoning-Intuition-LLM.md">DS004 - Reasoning, Intuition, and LLM Contracts</a>
+      <a href="loader.html?doc=specs/DS005-Implementation-Validation.md">DS005 - Implementation and Validation Plan</a>
+      <a href="loader.html?doc=specs/DS006-Chat-Examples-Experience.md">DS006 - Chat and Examples Experience</a>
+      <a href="../evals/DS100-Evaluation-Suite-Plan.md">DS100 - Evaluation Suite Plan (in evals/)</a>
+      <a href="../eval/README.md">Evaluation Runner Guide (eval/)</a>
+    </div>
+
+    <p class="hint">
+      If needed, you can load another Markdown file by changing the <code>doc</code> query parameter in <code>loader.html</code>.
+    </p>
+  </main>
+</body>
+</html>

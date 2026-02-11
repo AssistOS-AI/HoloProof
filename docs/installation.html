@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoloProof Installation Guide</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0c4a6e;
+      --code-bg: #0b1220;
+      --code-text: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 14px 38px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(170deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.9rem;
+    }
+    h2 {
+      margin-top: 1.7rem;
+      margin-bottom: 0.6rem;
+      font-size: 1.3rem;
+    }
+    p {
+      margin: 0.5rem 0;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+    .lead {
+      color: #1f2937;
+      margin-bottom: 0.9rem;
+    }
+    pre {
+      margin: 0.7rem 0;
+      padding: 12px;
+      border-radius: 10px;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-text);
+      border: 1px solid #1f2937;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.93em;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 0.1em 0.32em;
+      border-radius: 4px;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    ol {
+      margin: 0.4rem 0 0.8rem 1.2rem;
+      padding: 0;
+      color: #1f2937;
+    }
+    li {
+      margin: 0.35rem 0;
+      line-height: 1.55;
+    }
+    .note {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #1e3a8a;
+      margin-top: 0.5rem;
+    }
+    .back {
+      display: inline-block;
+      margin-top: 1.2rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>HoloProof Installation Guide</h1>
+    <p class="lead">
+      This guide explains how to prepare the environment for HoloProof and how to bootstrap the project locally.
+    </p>
+
+    <h2>1. Prerequisites</h2>
+    <p>Use a Unix-like environment (Linux or macOS). For Windows, use WSL for the same command flow.</p>
+    <ol>
+      <li>Install Node.js 20+ and npm.</li>
+      <li>Install one or both SMT solvers: Z3 and CVC5.</li>
+      <li>Ensure the parent integration dependency <code>../AchillesAgentLib</code> is available.</li>
+    </ol>
+
+    <h2>2. Solver Setup</h2>
+    <p>Install the solver binaries and verify they are visible in <code>PATH</code>.</p>
+    <p>Ubuntu/Debian example:</p>
+    <pre><code>sudo apt update
+sudo apt install -y z3 cvc5
+z3 --version
+cvc5 --version</code></pre>
+    <p>macOS example (Homebrew):</p>
+    <pre><code>brew install z3 cvc5
+z3 --version
+cvc5 --version</code></pre>
+
+    <h2>3. Project Bootstrap</h2>
+    <p>Clone and enter the repository, then install JavaScript dependencies once <code>package.json</code> is available.</p>
+    <pre><code>git clone &lt;your-repo-url&gt; HoloProof
+cd HoloProof
+npm install</code></pre>
+    <div class="note">
+      Current repository status is documentation-first. If runtime files are not present yet, keep this step for the first implementation commit.
+    </div>
+
+    <h2>4. LLM Integration Baseline</h2>
+    <p>
+      HoloProof does not define a separate provider stack in core modules. It uses the parent <code>AchillesAgentLib</code> API
+      through <code>LLMAgent</code> and existing provider/model routing.
+    </p>
+    <pre><code>import { LLMAgent } from '../AchillesAgentLib/LLMAgents/index.mjs';
+
+const llmAgent = new LLMAgent({ name: 'HoloProof-Encoder' });</code></pre>
+    <p>Set provider API keys and Achilles model configuration according to the parent library configuration rules.</p>
+
+    <h2>5. Validate the Environment</h2>
+    <p>Before running the system, verify each baseline dependency in one pass:</p>
+    <pre><code>node -v
+npm -v
+z3 --version
+cvc5 --version
+ls -la ../AchillesAgentLib</code></pre>
+
+    <a class="back" href="index.html">Back to Documentation Index</a>
+  </main>
+</body>
+</html>

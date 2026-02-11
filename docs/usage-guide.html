@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoloProof Usage Guide</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --accent: #0c4a6e;
+      --accent-soft: #ecfeff;
+      --chat-user: #dbeafe;
+      --chat-assistant: #f1f5f9;
+      --code-bg: #0b1220;
+      --code-text: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px 14px 38px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(170deg, #f8fafc 0%, #e2e8f0 100%);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      padding: 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #f8fafc 0%, #ecfeff 100%);
+    }
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.9rem;
+    }
+    p {
+      margin: 0.45rem 0;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .content {
+      padding: 20px 22px 24px;
+    }
+    h2 {
+      margin: 1.4rem 0 0.55rem;
+      font-size: 1.22rem;
+    }
+    .template {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      border-radius: 10px;
+      padding: 12px;
+      color: #1e3a8a;
+      margin-top: 0.4rem;
+      white-space: pre-wrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 1rem;
+      margin-bottom: 0.9rem;
+    }
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      color: #0f172a;
+      border-radius: 999px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      background: var(--accent-soft);
+      border-color: #67e8f9;
+      color: #155e75;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 0.8rem;
+    }
+    .toolbar button {
+      border: 1px solid #93c5fd;
+      background: #dbeafe;
+      color: #1e3a8a;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .toolbar button:hover { background: #bfdbfe; }
+    .chat-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      height: 520px;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .msg {
+      margin-bottom: 10px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      max-width: 92%;
+      line-height: 1.5;
+    }
+    .msg.user {
+      margin-left: auto;
+      background: var(--chat-user);
+      border-color: #93c5fd;
+    }
+    .msg.assistant {
+      margin-right: auto;
+      background: var(--chat-assistant);
+      border-color: #cbd5e1;
+    }
+    .msg.system {
+      margin: 12px auto;
+      text-align: center;
+      font-size: 0.92rem;
+      color: #334155;
+      background: #f8fafc;
+      max-width: 100%;
+    }
+    .label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .mono {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      white-space: pre-wrap;
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 8px;
+      padding: 9px;
+      border: 1px solid #1f2937;
+      font-size: 0.9rem;
+    }
+    .example-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .example-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px;
+      background: #ffffff;
+    }
+    .example-card h3 {
+      margin: 0 0 5px;
+      font-size: 1rem;
+    }
+    .example-card p {
+      margin: 0.28rem 0;
+      font-size: 0.92rem;
+      color: #334155;
+    }
+    .example-card button {
+      margin-top: 8px;
+      border: 1px solid #93c5fd;
+      background: #eff6ff;
+      color: #1e3a8a;
+      border-radius: 7px;
+      padding: 7px 8px;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+    }
+    .example-card button:hover { background: #dbeafe; }
+    .back-link {
+      display: inline-block;
+      margin-top: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="header">
+      <h1>HoloProof Usage Guide</h1>
+      <p>This guide explains what problems HoloProof can solve and how to phrase prompts so NL-to-formal translation is more reliable.</p>
+      <p>The interactive demo below includes a Chat tab and an Examples tab, with 30 diverse prompt patterns.</p>
+    </section>
+
+    <section class="content">
+      <h2>What HoloProof Is Good At</h2>
+      <p>HoloProof works best on questions that can be mapped to explicit entities, constraints, and goals: consistency checks, implication checks, feasibility, counterexample search, and policy validation.</p>
+
+      <h2>How To Phrase Prompts For Better Formalization</h2>
+      <p>Prefer explicit facts and explicit objective in one message. Name entities clearly, include units or domains, and state whether you want proof, witness model, or conflict diagnosis.</p>
+      <div class="template">Recommended prompt template:
+Context: [short domain context]
+Facts:
+- [fact 1]
+- [fact 2]
+Question: [exact claim to verify]
+Expected output: [prove/deny/example/unsat-core]
+Assumptions: [optional defaults and scope]</div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="chat">Chat</button>
+        <button class="tab-btn" data-tab="examples">Examples</button>
+      </div>
+
+      <section id="tab-chat" class="tab-panel active">
+        <div class="toolbar">
+          <button id="nextBtn">Load Next Example</button>
+          <button id="runAllBtn">Load All Remaining</button>
+          <button id="resetBtn">Reset Demo Chat</button>
+          <button id="switchExamplesBtn">Open Examples Tab</button>
+        </div>
+        <div class="chat-box" id="chatBox"></div>
+      </section>
+
+      <section id="tab-examples" class="tab-panel">
+        <p>Choose any example and load it directly into the chat demo. Each example includes an ideal formulation and a formal reasoning-style response.</p>
+        <div class="example-list" id="exampleList"></div>
+      </section>
+
+      <a class="back-link" href="index.html">Back to Documentation Index</a>
+    </section>
+  </main>
+
+  <script>
+    const examples = [
+      { id: 'EX01', category: 'Knowledge Graph', title: 'Family inheritance entailment', problem: 'Check whether Ana can inherit under given family rules.', idealPrompt: 'Facts: All children of Maria are legal heirs. Ana is a child of Maria. Question: Is Ana a legal heir?', formalTarget: 'Entailment over predicates childOf and legalHeir.', reasoning: 'Axiom childOf(x, Maria) -> legalHeir(x). Fact childOf(Ana, Maria). Therefore legalHeir(Ana).', answer: 'Verdict: entailed. Ana is a legal heir in the current world.' },
+      { id: 'EX02', category: 'Scheduling', title: 'Meeting overlap detection', problem: 'Detect if two meetings overlap.', idealPrompt: 'Facts: Meeting A is 09:00-10:00, Meeting B is 09:30-11:00. Question: Do they overlap?', formalTarget: 'Interval intersection satisfiability.', reasoning: 'Overlap condition startA < endB and startB < endA holds for provided times.', answer: 'Verdict: sat for overlap. The two meetings overlap.' },
+      { id: 'EX03', category: 'Access Control', title: 'Role permission check', problem: 'Validate if a user can export payroll data.', idealPrompt: 'Facts: Only role FinanceAdmin can export payroll. User Dan has roles Analyst and Auditor. Question: Can Dan export payroll?', formalTarget: 'Permission entailment with role constraints.', reasoning: 'No fact links Dan to FinanceAdmin. ExportPayroll requires FinanceAdmin.', answer: 'Verdict: not entailed. Dan cannot export payroll.' },
+      { id: 'EX04', category: 'Inventory', title: 'Stock feasibility', problem: 'Can a shipment be fulfilled from current stock?', idealPrompt: 'Facts: Stock bolts=120, nuts=90. Order requires bolts=80, nuts=100. Question: Is order feasible?', formalTarget: 'Linear constraints with availability >= demand.', reasoning: 'Bolts constraint satisfied. Nuts constraint violated because 90 < 100.', answer: 'Verdict: infeasible in current state due to nuts shortage.' },
+      { id: 'EX05', category: 'Graph Reachability', title: 'Route existence', problem: 'Find if route exists from node A to F.', idealPrompt: 'Facts: edges A-B, B-C, C-E, E-F. Question: Is F reachable from A?', formalTarget: 'Transitive closure reachability query.', reasoning: 'Path A->B->C->E->F satisfies reachability relation.', answer: 'Verdict: reachable. Witness path found: A-B-C-E-F.' },
+      { id: 'EX06', category: 'Arithmetic', title: 'Budget threshold validation', problem: 'Check budget constraints.', idealPrompt: 'Facts: Marketing=40k, Infra=35k, Reserve=15k. Total budget cap=85k. Question: Is plan valid?', formalTarget: 'LIA sum <= cap.', reasoning: 'Total is 90k. Cap is 85k. Constraint violated.', answer: 'Verdict: unsat for validity. Plan exceeds cap by 5k.' },
+      { id: 'EX07', category: 'Consistency', title: 'Rule conflict detection', problem: 'Detect contradictory policy rules.', idealPrompt: 'Facts: Rule1 says every remote contractor must use VPN. Rule2 says contractors cannot use VPN. Question: Is policy set consistent?', formalTarget: 'Global consistency of policy axioms.', reasoning: 'For contractor entity, Rule1 implies VPN and Rule2 implies not VPN.', answer: 'Verdict: unsat. Policy set is inconsistent for contractor scope.' },
+      { id: 'EX08', category: 'Eligibility', title: 'Program eligibility', problem: 'Determine scholarship eligibility from rules.', idealPrompt: 'Facts: Eligibility requires GPA>=3.5 and income<40k. Student has GPA=3.7 and income=42k. Question: Eligible?', formalTarget: 'Conjunctive threshold satisfaction.', reasoning: 'GPA condition true. Income condition false.', answer: 'Verdict: not eligible under current rules.' },
+      { id: 'EX09', category: 'Fraud Rules', title: 'Suspicious transaction pattern', problem: 'Check if transaction triggers fraud flag.', idealPrompt: 'Facts: FraudFlag if amount>10k and country is highRisk. Tx amount=12k, country=highRisk. Question: Is FraudFlag triggered?', formalTarget: 'Rule firing entailment.', reasoning: 'Both antecedent predicates true for transaction.', answer: 'Verdict: entailed. Transaction is flagged.' },
+      { id: 'EX10', category: 'Resource Allocation', title: 'Machine assignment', problem: 'Assign jobs without capacity overflow.', idealPrompt: 'Facts: Machine M1 capacity=8h, jobs J1=5h, J2=4h both assigned to M1. Question: Is assignment feasible?', formalTarget: 'Capacity constraints in single resource schedule.', reasoning: 'Assigned load 9h exceeds 8h capacity.', answer: 'Verdict: infeasible assignment.' },
+      { id: 'EX11', category: 'Temporal Logic', title: 'Prerequisite ordering', problem: 'Validate ordering constraints.', idealPrompt: 'Facts: Step Build must happen before Test. Test scheduled at 13:00, Build at 14:00. Question: Is plan valid?', formalTarget: 'Before relation consistency.', reasoning: 'Schedule violates required ordering Build < Test.', answer: 'Verdict: invalid plan. Temporal precedence broken.' },
+      { id: 'EX12', category: 'Compliance', title: 'Invoice tax rule', problem: 'Apply tax exemption logic.', idealPrompt: 'Facts: Non-profit organizations are tax exempt. Org X is non-profit. Question: Should tax be applied?', formalTarget: 'Exemption entailment under class membership.', reasoning: 'Class membership implies exemption; no override rule provided.', answer: 'Verdict: tax should not be applied.' },
+      { id: 'EX13', category: 'Education', title: 'Course prerequisite closure', problem: 'Can student enroll in advanced course?', idealPrompt: 'Facts: AI2 requires AI1 and Logic1. Student passed AI1 only. Question: Can student enroll in AI2?', formalTarget: 'Conjunctive prerequisite checking.', reasoning: 'Missing proof of Logic1 completion.', answer: 'Verdict: enrollment not allowed yet.' },
+      { id: 'EX14', category: 'Network Security', title: 'Blocked attack path', problem: 'Is there a reachable path from internet to DB?', idealPrompt: 'Facts: Internet->Web, Web->API, API->DB. Firewall blocks API->DB. Question: Is DB reachable from internet?', formalTarget: 'Reachability with blocked edges.', reasoning: 'Critical edge API->DB removed by firewall constraint.', answer: 'Verdict: DB not reachable from internet in this model.' },
+      { id: 'EX15', category: 'Capacity Planning', title: 'Team load balancing', problem: 'Check if sprint load fits team capacity.', idealPrompt: 'Facts: Team capacity=30 points. Tasks total=34 points. Question: Is sprint plan feasible?', formalTarget: 'Aggregate load <= capacity.', reasoning: '34 > 30 violates capacity bound.', answer: 'Verdict: infeasible without scope reduction.' },
+      { id: 'EX16', category: 'Contract Analysis', title: 'Clause incompatibility', problem: 'Detect contradictory contract clauses.', idealPrompt: 'Facts: Clause A requires delivery within 5 days. Clause B forbids delivery before day 10. Question: Are clauses jointly satisfiable?', formalTarget: 'Constraint satisfiability over deliveryDay.', reasoning: 'Constraints require deliveryDay <= 5 and >= 10 simultaneously.', answer: 'Verdict: unsat. Clauses conflict.' },
+      { id: 'EX17', category: 'Manufacturing', title: 'Quality gate decision', problem: 'Release decision based on test outcomes.', idealPrompt: 'Facts: Release requires stressTest=pass and leakTest=pass. Device has stressTest=pass, leakTest=fail. Question: Release allowed?', formalTarget: 'Boolean gate conjunction.', reasoning: 'One required predicate false.', answer: 'Verdict: release denied by quality gate.' },
+      { id: 'EX18', category: 'Deductive Logic', title: 'Syllogism chain', problem: 'Verify simple deductive conclusion.', idealPrompt: 'Facts: All encrypted drives are secure. All secure drives are compliant. Drive D is encrypted. Question: Is Drive D compliant?', formalTarget: 'Two-step implication chain.', reasoning: 'encrypted(D) -> secure(D) -> compliant(D).', answer: 'Verdict: entailed. Drive D is compliant.' },
+      { id: 'EX19', category: 'Combinatorics', title: 'Graph coloring feasibility', problem: 'Can triangle graph be 2-colored?', idealPrompt: 'Facts: Graph has nodes A,B,C with edges AB, BC, CA. Question: Is 2-coloring possible?', formalTarget: 'SAT constraints for graph coloring.', reasoning: 'Odd cycle requires at least 3 colors.', answer: 'Verdict: unsat for 2-coloring.' },
+      { id: 'EX20', category: 'Loan Policy', title: 'Loan approval decision', problem: 'Apply policy thresholds.', idealPrompt: 'Facts: Approve if income>=50k and debtRatio<0.4. Applicant income=60k, debtRatio=0.42. Question: Approved?', formalTarget: 'Threshold conjunction for approval.', reasoning: 'Income condition true, debt ratio condition false.', answer: 'Verdict: not approved under policy.' },
+      { id: 'EX21', category: 'Robotics', title: 'Motion plan safety', problem: 'Validate safe move sequence.', idealPrompt: 'Facts: Robot cannot enter Zone Z while arm is extended. Plan step enters Z with arm extended. Question: Is plan safe?', formalTarget: 'State transition safety invariant.', reasoning: 'Plan violates forbidden state predicate.', answer: 'Verdict: unsafe plan.' },
+      { id: 'EX22', category: 'Data Quality', title: 'Duplicate customer detection', problem: 'Detect violating uniqueness constraints.', idealPrompt: 'Facts: customerId must be unique. Records r1 and r2 both use customerId C42. Question: Is dataset valid?', formalTarget: 'Uniqueness constraint consistency.', reasoning: 'Exist two distinct records with same unique key.', answer: 'Verdict: invalid dataset due to duplicate key.' },
+      { id: 'EX23', category: 'Authorization', title: 'Inherited permissions', problem: 'Check inherited access via group membership.', idealPrompt: 'Facts: Group G grants read Reports. User Eva is in group G. Question: Does Eva have read Reports?', formalTarget: 'Membership-based permission entailment.', reasoning: 'member(Eva,G) and grants(G,readReports) imply hasPermission(Eva,readReports).', answer: 'Verdict: entailed permission.' },
+      { id: 'EX24', category: 'Ontology', title: 'Type hierarchy consistency', problem: 'Validate type assignment consistency.', idealPrompt: 'Facts: Every Bird is Animal. Penguin is Bird. Question: Is Penguin an Animal?', formalTarget: 'Subclass entailment.', reasoning: 'Subclass chain Bird -> Animal with instance Penguin:Bird.', answer: 'Verdict: entailed. Penguin is Animal.' },
+      { id: 'EX25', category: 'Energy', title: 'Consumption budget check', problem: 'Check monthly energy plan.', idealPrompt: 'Facts: Max monthly usage 500 kWh. Planned devices sum to 540 kWh. Question: Is plan compliant?', formalTarget: 'Numeric cap validation.', reasoning: 'Planned usage exceeds cap by 40 kWh.', answer: 'Verdict: non-compliant plan.' },
+      { id: 'EX26', category: 'Transport', title: 'Transfer feasibility', problem: 'Can a passenger catch connecting train?', idealPrompt: 'Facts: Train1 arrives 10:02 at station S. Train2 departs 10:05 from S. Minimum transfer time is 6 minutes. Question: Feasible transfer?', formalTarget: 'Temporal inequality with buffer.', reasoning: 'Available transfer time is 3 minutes, below required 6.', answer: 'Verdict: transfer infeasible.' },
+      { id: 'EX27', category: 'Logic Puzzle', title: 'Knights and knaves', problem: 'Resolve statement consistency.', idealPrompt: 'Facts: In island puzzle, A says "B is a knave" and B says "A and I are same type". Question: Assign consistent types.', formalTarget: 'Boolean constraint solving on truthfulness.', reasoning: 'Model search over A/B truth roles yields unique satisfying assignment.', answer: 'Verdict: sat. A is knight, B is knave.' },
+      { id: 'EX28', category: 'Set Reasoning', title: 'Subset query', problem: 'Check membership implication.', idealPrompt: 'Facts: Set PremiumUsers is subset of VerifiedUsers. Tom is PremiumUser. Question: Is Tom VerifiedUser?', formalTarget: 'Subset implication over membership predicates.', reasoning: 'Subset rule and membership fact imply verified membership.', answer: 'Verdict: entailed.' },
+      { id: 'EX29', category: 'Counterexample Search', title: 'Find violating assignment', problem: 'Find a model that breaks a claim.', idealPrompt: 'Claim: For all x, if x>10 then x<15. Question: Provide counterexample if claim is false.', formalTarget: 'Model finding for negated universal claim.', reasoning: 'Negation asks for x>10 and x>=15; solver can provide witness.', answer: 'Verdict: claim false. Witness example: x = 15.' },
+      { id: 'EX30', category: 'World Forking', title: 'Compare hypothesis branches', problem: 'Compare outcomes under two assumptions.', idealPrompt: 'World A assumption: Supplier lead time=2 days. Fork World B with lead time=7 days. Question: Is delivery-by-Friday feasible in both worlds?', formalTarget: 'Cross-world feasibility comparison.', reasoning: 'Same order constraints evaluated in two snapshots with different lead-time axioms.', answer: 'Verdict: feasible in World A, infeasible in World B.' }
+    ];
+
+    const chatBox = document.getElementById('chatBox');
+    const exampleList = document.getElementById('exampleList');
+
+    const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+    const panels = {
+      chat: document.getElementById('tab-chat'),
+      examples: document.getElementById('tab-examples'),
+    };
+
+    let nextIndex = 0;
+
+    function switchTab(name) {
+      tabButtons.forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === name);
+      });
+      Object.entries(panels).forEach(([key, panel]) => {
+        panel.classList.toggle('active', key === name);
+      });
+    }
+
+    function addMessage(role, label, text, useMono = false) {
+      const msg = document.createElement('div');
+      msg.className = `msg ${role}`;
+
+      if (label) {
+        const labelEl = document.createElement('div');
+        labelEl.className = 'label';
+        labelEl.textContent = label;
+        msg.appendChild(labelEl);
+      }
+
+      const body = document.createElement('div');
+      if (useMono) {
+        body.className = 'mono';
+      }
+      body.textContent = text;
+      msg.appendChild(body);
+
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function addSystemLine(text) {
+      addMessage('system', '', text, false);
+    }
+
+    function loadExampleAt(index) {
+      const ex = examples[index];
+      if (!ex) {
+        addSystemLine('No more examples available.');
+        return;
+      }
+
+      addSystemLine(`${ex.id} | ${ex.category} | ${ex.title}`);
+      addMessage('user', 'User Prompt (Ideal Formulation)', ex.idealPrompt);
+      addMessage('assistant', 'Formalization Intent', ex.formalTarget, true);
+      addMessage('assistant', 'Formal Reasoning Trace', ex.reasoning, true);
+      addMessage('assistant', 'Solver-Aligned Answer', ex.answer);
+    }
+
+    function resetChat() {
+      chatBox.innerHTML = '';
+      nextIndex = 0;
+      addSystemLine('Demo chat reset. Click "Load Next Example" to start.');
+    }
+
+    function loadNext() {
+      if (nextIndex >= examples.length) {
+        addSystemLine('All 30 examples have already been loaded.');
+        return;
+      }
+      loadExampleAt(nextIndex);
+      nextIndex += 1;
+    }
+
+    function loadAllRemaining() {
+      if (nextIndex >= examples.length) {
+        addSystemLine('All examples are already loaded.');
+        return;
+      }
+      while (nextIndex < examples.length) {
+        loadExampleAt(nextIndex);
+        nextIndex += 1;
+      }
+      addSystemLine('Completed loading all examples into the chat demo.');
+    }
+
+    function loadSpecific(index) {
+      loadExampleAt(index);
+      if (index >= nextIndex) {
+        nextIndex = index + 1;
+      }
+      switchTab('chat');
+    }
+
+    function renderExampleCards() {
+      const frag = document.createDocumentFragment();
+      examples.forEach((ex, index) => {
+        const card = document.createElement('article');
+        card.className = 'example-card';
+
+        const title = document.createElement('h3');
+        title.textContent = `${ex.id} - ${ex.title}`;
+        card.appendChild(title);
+
+        const c1 = document.createElement('p');
+        c1.textContent = `Category: ${ex.category}`;
+        card.appendChild(c1);
+
+        const c2 = document.createElement('p');
+        c2.textContent = `Problem: ${ex.problem}`;
+        card.appendChild(c2);
+
+        const c3 = document.createElement('p');
+        c3.textContent = `Ideal prompt: ${ex.idealPrompt}`;
+        card.appendChild(c3);
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Load In Chat';
+        btn.addEventListener('click', () => loadSpecific(index));
+        card.appendChild(btn);
+
+        frag.appendChild(card);
+      });
+      exampleList.appendChild(frag);
+    }
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', loadNext);
+    document.getElementById('runAllBtn').addEventListener('click', loadAllRemaining);
+    document.getElementById('resetBtn').addEventListener('click', resetChat);
+    document.getElementById('switchExamplesBtn').addEventListener('click', () => switchTab('examples'));
+
+    renderExampleCards();
+    resetChat();
+  </script>
+</body>
+</html>
