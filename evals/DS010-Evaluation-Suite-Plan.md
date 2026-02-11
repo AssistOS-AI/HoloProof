@@ -1,8 +1,8 @@
-# DS100 - Evaluation Suite Plan (100 Diverse Examples)
+# DS010 - Evaluation Suite Plan (100 Diverse Examples)
 
 ## Purpose
 
-This design specification defines the first evaluation suite for HoloProof under `evals/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, Intuition strategy, VSA/HDC representation strategy, and LLM profile.
+This design specification defines the first evaluation suite for HoloProof under `evals/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, Intuition strategy, VSA/HDC representation strategy, and controlled LLM profile testing.
 
 ## Suite Structure
 
@@ -30,9 +30,9 @@ Strategy families for matrix generation:
 - SMT strategy: backend + solving style, minimum `z3` and `cvc5`.
 - Intuition strategy: `NoIntuition` and `VSAIntuition`.
 - VSA/HDC representation strategy used when intuition is enabled: HRR cosine ranking and Binary HDC Hamming ranking.
-- LLM profile factor: first configured Achilles fast model and first configured Achilles deep model.
+- LLM profile factor (only when live LLM generation is enabled): first configured Achilles fast model and first configured Achilles deep model.
 
-LLM selection rule for default runs:
+LLM selection rule for live-generation runs:
 
 - `fast-default`: first configured model in Achilles fast list.
 - `deep-default`: first configured model in Achilles deep list.
@@ -42,6 +42,19 @@ LLM selection rule for default runs:
 `smoke` profile is a fast confidence pass over default combinations only, intended for local checks and CI preflight. It must include both `NoIntuition` and `VSAIntuition`.
 
 `all` profile is a full sweep over all configured strategy families, including both baseline VSA/HDC representations for `VSAIntuition`. This is used for comparative speed analysis and regression trend tracking.
+
+## SMT Cache and LLM Invocation Policy
+
+Default evaluation mode must not invoke LLMs for every case. Instead, it uses pre-generated SMT artifacts from a cache to keep runs fast and reproducible.
+
+Live LLM generation is enabled explicitly (for example with `--llm`) to test encoder behavior and model-dependent quality.
+
+This yields two execution modes:
+
+- `cached-smt` (default): no live LLM calls during case execution.
+- `live-llm-generation` (opt-in): LLM calls enabled for generation/translation testing.
+
+Cache location should be configurable (for example with `--smt-cache`) to support CI/local path differences.
 
 ## Case Catalog
 
@@ -185,6 +198,8 @@ Each execution result should include:
 
 `caseId`, `combinationId`, `status`, `elapsedMs`, `verdict`, and optional `error`.
 
+Run-level metadata should include `llmInvocationMode` and cache-path identifiers used for SMT artifacts.
+
 ## Execution and Scoring
 
 Primary scoring dimensions:
@@ -208,7 +223,9 @@ Required behavior:
 - run `all` profile for full combination sweep,
 - include both Intuition strategies (`NoIntuition`, `VSAIntuition`),
 - include both baseline VSA/HDC representations (HRR and Binary HDC) for `VSAIntuition`,
-- include both Achilles `fast-default` and `deep-default` LLM profiles,
+- default to `cached-smt` mode with no live LLM calls,
+- support opt-in `--llm` mode for live generation tests,
+- when `--llm` is enabled, include both Achilles `fast-default` and `deep-default` LLM profiles,
 - emit machine-readable result artifacts under `eval/results/`.
 
 ## Delivery Stages

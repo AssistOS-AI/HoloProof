@@ -30,6 +30,14 @@ Solver adapters must expose a normalized response envelope so upper layers remai
 
 The LLM adapter must isolate Achilles-specific invocation details while preserving a clean contract for encoder/query/decoder modules.
 
+## Persistence Strategy Contract
+
+Persistence is strategy-based and must not be hard-wired to a single backend in core logic.
+
+The world/fragment storage layer should be exposed through a `PersistenceAdapter` contract with at least one initial strategy: an intentionally unoptimized baseline implementation (for example copy-on-write JSON/file storage) used first for correctness and traceability.
+
+Optimized strategies (for example relational or embedded databases) can be added later without changing orchestration or reasoning contracts.
+
 ## Observability and Audit Trail
 
 Each query execution must persist a trace with world ID, snapshot ID, formal query, active fragment IDs, chosen strategy, budget values, elapsed timing, and solver artifacts. This trace is the foundation for debugging, governance, and reproducibility.
@@ -50,6 +58,7 @@ The script should support two execution profiles:
 At minimum, every evaluation run records:
 
 - strategy tuple (SMT + Intuition strategy + VSA/HDC representation + LLM profile),
+- LLM invocation mode (`cached-smt` vs `live-llm-generation`),
 - pass/fail/unknown/error counts,
 - elapsed timing and average per case,
 - aggregate success rate,

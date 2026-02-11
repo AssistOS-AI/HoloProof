@@ -23,7 +23,7 @@ The project specification map is organized under `docs/specs/` and currently inc
 - `docs/specs/DS007-Intuition-Module.md`
 - `docs/specs/DS008-VSA-HRR-Strategy.md`
 - `docs/specs/DS009-HDC-Binary-Strategy.md`
-- `evals/DS100-Evaluation-Suite-Plan.md`
+- `evals/DS010-Evaluation-Suite-Plan.md`
 - `eval/runEval.mjs`
 
 Documentation entry points:
@@ -42,7 +42,13 @@ For formal reasoning, keep a common adapter interface and allow at least `z3` an
 
 For LLM functionality, reuse the API from the parent folder `../AchillesAgentLib` (not custom ad-hoc provider calls in core modules). The expected integration style is through the `LLMAgent` abstraction and its existing fast/deep model-routing support.
 
+Achilles integration should prefer package/module resolution when available and keep `../AchillesAgentLib` as workspace fallback.
+
+Persistence must be strategy-based. The first persistence strategy is intentionally unoptimized and correctness-first.
+
 Evaluation runs must benchmark strategy combinations across SMT, Intuition strategy, and VSA/HDC representation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.
+
+Default evaluation mode is cached SMT (no live LLM calls during case execution). Live LLM generation is enabled explicitly (for example with `--llm`) when testing encoder/model behavior.
 
 Initial Intuition strategy baseline:
 

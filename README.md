@@ -47,7 +47,7 @@ Design Specifications:
 
 Evaluation specification:
 
-- `evals/DS100-Evaluation-Suite-Plan.md`
+- `evals/DS010-Evaluation-Suite-Plan.md`
 
 Evaluation runner:
 
@@ -59,12 +59,15 @@ Example commands:
 ```bash
 node eval/runEval.mjs --mode smoke
 node eval/runEval.mjs --mode all
+node eval/runEval.mjs --mode smoke --llm
 ```
 
 Initial intuition-related strategy baselines used in evaluation:
 
 - Intuition: `no-intuition`, `vsa-intuition`
 - VSA/HDC representation: `vsa-hrr-cosine-topk`, `vsa-hdc-binary-hamming-topk`
+
+Evaluation default is cached SMT execution (no live LLM generation). Use `--llm` when validating live LLM generation quality.
 
 ## Language Policy
 

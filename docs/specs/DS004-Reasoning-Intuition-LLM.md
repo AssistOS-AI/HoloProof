@@ -51,3 +51,5 @@ const structured = await encoderAgent.complete({
 The same abstraction can be reused for multiple LLM strategies, including fallback chains, without changing reasoning-core logic.
 
 For evaluation defaults, fast mode should pick the first configured fast model from Achilles model discovery, and comparison runs should also include the first configured deep model.
+
+Integration policy should prefer Node module resolution (package import) when available, and use local path fallback (`../AchillesAgentLib`) in workspace setups. This keeps local development practical without turning relative paths into a hard deployment requirement.

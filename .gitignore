@@ -141,3 +141,5 @@ vite.config.ts.timestamp-*
 # Evaluation outputs
 eval/results/*
 !eval/results/.gitkeep
+eval/cache/*
+!eval/cache/.gitkeep

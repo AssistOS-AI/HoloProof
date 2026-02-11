@@ -4,7 +4,7 @@ This directory contains evaluation planning and, later, executable evaluation ca
 
 Current entry point:
 
-- `evals/DS100-Evaluation-Suite-Plan.md`
+- `evals/DS010-Evaluation-Suite-Plan.md`
 
 The plan defines 100 diverse examples across logical reasoning, constraints, ambiguity handling, world forking, and robustness behavior.
 

@@ -26,6 +26,12 @@ Run with an external case runner command:
 node eval/runEval.mjs --mode smoke --runner "node src/eval/executeCase.mjs"
 ```
 
+Run live LLM generation mode (instead of cached SMT mode):
+
+```bash
+node eval/runEval.mjs --mode smoke --llm --runner "node src/eval/executeCase.mjs"
+```
+
 List combinations and cases without executing:
 
 ```bash
@@ -45,6 +51,9 @@ If `--runner` is provided, each case execution receives:
 - `HP_EVAL_LLM_PROFILE`
 - `HP_EVAL_LLM_MODE`
 - `HP_EVAL_LLM_MODEL`
+- `HP_EVAL_LLM_INVOCATION_MODE`
+- `HP_EVAL_USE_LLM`
+- `HP_EVAL_SMT_CACHE_DIR`
 
 Initial intuition strategy set:
 
@@ -55,6 +64,18 @@ Initial VSA/HDC baseline representations:
 
 - `vsa-hrr-cosine-topk`
 - `vsa-hdc-binary-hamming-topk`
+
+## LLM Invocation and SMT Cache
+
+Default mode is cached SMT execution (`cached-smt`) and should avoid live LLM calls for speed and determinism.
+
+Use `--llm` to switch to live LLM generation mode when validating encoder/model behavior.
+
+Optional cache directory override:
+
+```bash
+node eval/runEval.mjs --mode all --smt-cache eval/cache/smt
+```
 
 ## Outputs
 

@@ -10,8 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
-const DEFAULT_PLAN_PATH = path.resolve(PROJECT_ROOT, 'evals/DS100-Evaluation-Suite-Plan.md');
+const DEFAULT_PLAN_PATH = path.resolve(PROJECT_ROOT, 'evals/DS010-Evaluation-Suite-Plan.md');
 const DEFAULT_OUTPUT_BASE = path.resolve(PROJECT_ROOT, 'eval/results');
+const DEFAULT_SMT_CACHE_DIR = path.resolve(PROJECT_ROOT, 'eval/cache/smt');
 
 const STATUS_VALUES = new Set(['pass', 'fail', 'unknown', 'error', 'skipped']);
 
@@ -77,8 +78,10 @@ Usage:
 Options:
   --mode <smoke|all>     Execution profile (default: smoke)
   --runner <command>     External runner command executed per case+combination
-  --plan <path>          Case plan markdown path (default: evals/DS100-Evaluation-Suite-Plan.md)
+  --plan <path>          Case plan markdown path (default: evals/DS010-Evaluation-Suite-Plan.md)
   --output <dir>         Output directory (default: eval/results/<timestamp>)
+  --smt-cache <dir>      SMT cache directory (default: eval/cache/smt)
+  --llm                  Enable live LLM generation mode (default uses cached SMT artifacts)
   --max-cases <n>        Limit number of cases (useful for quick checks)
   --list-only            Print matrix and exit without execution
   --dry-run              Force dry-run mode (records skipped results)
@@ -95,6 +98,9 @@ Runner contract:
     HP_EVAL_LLM_PROFILE
     HP_EVAL_LLM_MODE
     HP_EVAL_LLM_MODEL
+    HP_EVAL_LLM_INVOCATION_MODE
+    HP_EVAL_USE_LLM
+    HP_EVAL_SMT_CACHE_DIR
 
   If runner prints a JSON object on the last stdout line with { status, verdict?, elapsedMs? },
   it is used directly. Otherwise, exit code 0 maps to status=pass.
@@ -107,6 +113,8 @@ function parseArgs(argv) {
     runner: null,
     plan: DEFAULT_PLAN_PATH,
     output: null,
+    smtCache: DEFAULT_SMT_CACHE_DIR,
+    useLLM: false,
     maxCases: null,
     listOnly: false,
     dryRun: false,
@@ -126,6 +134,10 @@ function parseArgs(argv) {
     }
     if (token === '--dry-run') {
       args.dryRun = true;
+      continue;
+    }
+    if (token === '--llm') {
+      args.useLLM = true;
       continue;
     }
 
@@ -158,6 +170,13 @@ function parseArgs(argv) {
       const value = readValue();
       if (value) {
         args.output = path.resolve(PROJECT_ROOT, value);
+      }
+      continue;
+    }
+    if (key === '--smt-cache') {
+      const value = readValue();
+      if (value) {
+        args.smtCache = path.resolve(PROJECT_ROOT, value);
       }
       continue;
     }
@@ -241,8 +260,10 @@ async function discoverLLMProfiles() {
   ];
 
   try {
-    const moduleUrl = new URL('../../AchillesAgentLib/utils/LLMClient.mjs', import.meta.url);
-    const achilles = await import(moduleUrl.href);
+    const achilles = await importAchillesLLMClient();
+    if (!achilles) {
+      return fallback;
+    }
     const strategy = achilles.defaultLLMInvokerStrategy;
 
     if (!strategy || typeof strategy.listAvailableModels !== 'function') {
@@ -275,6 +296,28 @@ async function discoverLLMProfiles() {
   } catch {
     return fallback;
   }
+}
+
+async function importAchillesLLMClient() {
+  const moduleCandidates = [
+    'achillesAgentLib/utils/LLMClient.mjs',
+    'AchillesAgentLib/utils/LLMClient.mjs',
+    '../../AchillesAgentLib/utils/LLMClient.mjs',
+  ];
+
+  for (const candidate of moduleCandidates) {
+    try {
+      if (candidate.startsWith('.')) {
+        const moduleUrl = new URL(candidate, import.meta.url);
+        return await import(moduleUrl.href);
+      }
+      return await import(candidate);
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  return null;
 }
 
 function vsaRepresentationsFor(intuitionStrategy, mode) {
@@ -365,7 +408,7 @@ function runRunnerCommand(command, env) {
   });
 }
 
-async function runOneCase({ caseId, combination, runnerCommand, dryRun }) {
+async function runOneCase({ caseId, combination, runnerCommand, dryRun, useLLM, smtCacheDir }) {
   if (dryRun || !runnerCommand) {
     return {
       status: 'skipped',
@@ -388,6 +431,9 @@ async function runOneCase({ caseId, combination, runnerCommand, dryRun }) {
     HP_EVAL_LLM_PROFILE: combination.llm.id,
     HP_EVAL_LLM_MODE: combination.llm.mode,
     HP_EVAL_LLM_MODEL: combination.llm.model,
+    HP_EVAL_LLM_INVOCATION_MODE: useLLM ? 'live-llm-generation' : 'cached-smt',
+    HP_EVAL_USE_LLM: useLLM ? '1' : '0',
+    HP_EVAL_SMT_CACHE_DIR: smtCacheDir,
 
     // Backward-compatible aliases
     HP_EVAL_VSA_STRATEGY: combination.vsa.id,
@@ -591,7 +637,14 @@ async function main() {
     return;
   }
 
-  const llmProfiles = await discoverLLMProfiles();
+  const llmProfiles = args.useLLM
+    ? await discoverLLMProfiles()
+    : [{
+      id: 'llm-cached',
+      mode: 'none',
+      model: 'cached-smt',
+      source: 'cache',
+    }];
   const allCaseIds = await loadCaseIds(args.plan);
 
   const selectedCaseIds = args.mode === 'smoke'
@@ -611,7 +664,7 @@ async function main() {
     warnings.push('No --runner command was provided; execution is dry-run and case results are marked as skipped.');
   }
 
-  if (llmProfiles.some((profile) => profile.model.endsWith('-unresolved'))) {
+  if (args.useLLM && llmProfiles.some((profile) => profile.model.endsWith('-unresolved'))) {
     warnings.push('Achilles model discovery returned unresolved model names for fast/deep defaults.');
   }
 
@@ -620,6 +673,8 @@ async function main() {
   console.log(`[runEval] Mode: ${args.mode}`);
   console.log(`[runEval] Cases: ${limitedCaseIds.length}`);
   console.log(`[runEval] Combinations: ${combinations.length}`);
+  console.log(`[runEval] LLM mode: ${args.useLLM ? 'live-llm-generation' : 'cached-smt'}`);
+  console.log(`[runEval] SMT cache: ${args.smtCache}`);
   console.log(`[runEval] Runner: ${args.runner || 'none (dry-run)'}`);
   console.log(`[runEval] Output: ${outputDir}`);
 
@@ -654,6 +709,8 @@ async function main() {
         combination,
         runnerCommand: args.runner,
         dryRun,
+        useLLM: args.useLLM,
+        smtCacheDir: args.smtCache,
       });
 
       records.push({
@@ -677,6 +734,8 @@ async function main() {
   const outputJson = {
     generatedAt: new Date().toISOString(),
     mode: args.mode,
+    llmInvocationMode: args.useLLM ? 'live-llm-generation' : 'cached-smt',
+    smtCacheDir: args.smtCache,
     dryRun,
     runnerCommand: args.runner,
     planPath: args.plan,
