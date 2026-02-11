@@ -6,6 +6,8 @@ This directory contains orchestration utilities for strategy-combination benchma
 
 - `eval/runEval.mjs`
 
+Implementation note: `eval/runEval.mjs` is a thin CLI wrapper. Core evaluation logic is implemented in `src/sdk/eval/`.
+
 ## Quick Commands
 
 Smoke matrix with default combinations (dry-run if no runner is provided):
@@ -13,6 +15,10 @@ Smoke matrix with default combinations (dry-run if no runner is provided):
 ```bash
 node eval/runEval.mjs --mode smoke
 ```
+
+Default plan source is `docs/specs/DS010-Evaluation-Suite-Plan.md`.
+
+Smoke uses a deterministic stratified subset (20 cases, two per track).
 
 Full matrix over all strategy combinations:
 

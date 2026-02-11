@@ -1,0 +1,15 @@
+{
+  "name": "holoproof",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HoloProof mini SDK and evaluation tooling",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.mjs",
+    "eval:smoke": "node eval/runEval.mjs --mode smoke",
+    "eval:all": "node eval/runEval.mjs --mode all"
+  }
+}

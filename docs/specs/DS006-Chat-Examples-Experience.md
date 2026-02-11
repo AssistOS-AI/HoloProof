@@ -18,6 +18,8 @@ The Chat tab must show three information layers for each meaningful assistant tu
 
 The user should be able to run examples directly into chat without losing context. Example playback should appear as real turns, not as hidden metadata.
 
+When interactive runtime is implemented, Chat tab logic should call SDK interfaces from `src/sdk/` (world management, proposal lifecycle, reasoning traces) instead of embedding domain rules in UI code.
+
 Controls required for MVP demonstration mode:
 
 - `Load Next Example`

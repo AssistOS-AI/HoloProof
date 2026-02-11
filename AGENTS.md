@@ -23,7 +23,7 @@ The project specification map is organized under `docs/specs/` and currently inc
 - `docs/specs/DS007-Intuition-Module.md`
 - `docs/specs/DS008-VSA-HRR-Strategy.md`
 - `docs/specs/DS009-HDC-Binary-Strategy.md`
-- `evals/DS010-Evaluation-Suite-Plan.md`
+- `docs/specs/DS010-Evaluation-Suite-Plan.md`
 - `eval/runEval.mjs`
 
 Documentation entry points:
@@ -38,6 +38,8 @@ Documentation entry points:
 
 HoloProof is strategy-oriented and should support multiple interchangeable backends where possible.
 
+Core implementation lives in `src/` as a mini SDK. Runtime entry points (evaluation CLI and future chat runtime) must consume SDK exports instead of re-implementing core domain logic inline.
+
 For formal reasoning, keep a common adapter interface and allow at least `z3` and `cvc5` implementations.
 
 For LLM functionality, reuse the API from the parent folder `../AchillesAgentLib` (not custom ad-hoc provider calls in core modules). The expected integration style is through the `LLMAgent` abstraction and its existing fast/deep model-routing support.
@@ -49,6 +51,8 @@ Persistence must be strategy-based. The first persistence strategy is intentiona
 Evaluation runs must benchmark strategy combinations across SMT, Intuition strategy, and VSA/HDC representation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.
 
 Default evaluation mode is cached SMT (no live LLM calls during case execution). Live LLM generation is enabled explicitly (for example with `--llm`) when testing encoder/model behavior.
+
+The evaluation CLI entry point remains `eval/runEval.mjs`, but orchestration logic belongs to `src/sdk/eval/` and is imported by the CLI wrapper.
 
 Initial Intuition strategy baseline:
 

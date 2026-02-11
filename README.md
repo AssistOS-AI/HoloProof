@@ -5,6 +5,8 @@ Its objective is simple: natural-language interaction with solver-backed answers
 
 The project is currently specification-first. The design set lives in `docs/specs/`, and implementation follows the contracts defined there.
 
+Current implementation baseline is a mini SDK in `src/sdk/` with reusable domain modules (formal proposal validation, symbol registry, world management, evaluation orchestration).
+
 ## Short Vision
 
 HoloProof turns natural language and source documents into formal constraints, verifies claims with solver backends such as Z3 or CVC5, and returns human-readable responses grounded in explicit evidence.
@@ -47,12 +49,17 @@ Design Specifications:
 
 Evaluation specification:
 
-- `evals/DS010-Evaluation-Suite-Plan.md`
+- `docs/specs/DS010-Evaluation-Suite-Plan.md`
 
 Evaluation runner:
 
 - `eval/runEval.mjs`
 - `eval/README.md`
+
+SDK entry points:
+
+- `src/index.mjs`
+- `src/sdk/index.mjs`
 
 Example commands:
 

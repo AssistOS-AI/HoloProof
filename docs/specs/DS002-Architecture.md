@@ -14,11 +14,13 @@ HoloProof is organized around a chat orchestrator and five functional modules.
 
 `Intuition` builds and queries VSA/HDC/HRR representations to rank relevant knowledge fragments before expensive formal reasoning.
 
-`LLMEncoder` converts user text and source material into structured formal proposals, each carrying provenance and ambiguity markers.
+`LLMEncoder` converts user text and source material into structured `FormalProposal` JSON IR objects, each carrying provenance and ambiguity markers.
 
 `QueryEncoder` turns a user question into a formal query plan, including expected verification mode and resource budget.
 
 `ResponseDecoder` transforms validated solver outputs into natural-language answers with explicit references to formal evidence.
+
+`World Manager` maintains world snapshots, lifecycle states for proposals, a versioned symbol registry used by validation/encoding modules, and world-level policy metadata (sensitivity, trace redaction, retention).
 
 ## Strategy-Oriented Adapters
 
@@ -31,3 +33,5 @@ For LLM execution, HoloProof uses the API provided by the parent `AchillesAgentL
 ## Flow Contract
 
 The orchestration contract is strict: no answer is emitted as validated knowledge unless the solver confirms the relevant formal claim in the current world and snapshot context.
+
+Implementation boundary rule: domain logic is implemented in `src/sdk/` and reused by runtime entry points (evaluation CLI and chat runtime) to avoid contract drift between tools.

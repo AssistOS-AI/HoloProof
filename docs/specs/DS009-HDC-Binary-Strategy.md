@@ -10,6 +10,19 @@ Each fragment is encoded as a high-dimensional binary vector. Query encoding use
 
 Composition and binding follow binary HDC operations (for example XOR-like composition and majority-based bundling where applicable).
 
+Positional binding is mandatory. The strategy uses deterministic role hypervectors for predicate and argument positions:
+
+- `role_pred`,
+- `role_arg_0`, `role_arg_1`, ...
+
+Canonical relation encoding uses role-aware XOR binding followed by bundle:
+
+`termHV = bundle(xor(role_pred, predHV), xor(role_arg_0, arg0HV), xor(role_arg_1, arg1HV))`
+
+where `bundle` is majority aggregation with deterministic tie-breaking.
+
+This guarantees order sensitivity and avoids collapsing `likes(Alice, Bob)` into `likes(Bob, Alice)`.
+
 ## Candidate Selection
 
 Ranking is based on normalized Hamming distance (or equivalent binary similarity). The selector returns top-k candidates with score metadata and fragment identifiers.

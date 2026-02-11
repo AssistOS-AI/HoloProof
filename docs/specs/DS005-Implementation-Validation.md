@@ -8,27 +8,70 @@ A practical project skeleton is:
 
 ```text
 src/
+  sdk/
+    eval/
+    formalProposal.mjs
+    symbolRegistry.mjs
+    worldManager.mjs
+    response/
+    observability/
+    solver/
+    reasoning/
   chat/
-  reasoning/
-  intuition/
-  encoding/
-  response/
-  worlds/
   adapters/
     solver/
       z3Adapter.mjs
       cvc5Adapter.mjs
     llm/
       achillesLLMAgentAdapter.mjs
-  observability/
-  tests/
+tests/
+eval/
+  runEval.mjs
 ```
+
+`src/sdk/` is the single source of truth for core domain contracts. CLI/runtime layers (`eval/`, chat runtime) should be thin wrappers over SDK APIs.
 
 ## Interface Normalization
 
 Solver adapters must expose a normalized response envelope so upper layers remain backend-agnostic. At minimum, each call returns `verdict`, `elapsedMs`, and optional `model`, `unsatCore`, and backend diagnostics.
 
 The LLM adapter must isolate Achilles-specific invocation details while preserving a clean contract for encoder/query/decoder modules.
+
+## SolverAdapter Session Lifecycle Contract
+
+Incremental reasoning requires a stateful solver session, not one-shot subprocess calls. The adapter contract must expose explicit lifecycle operations:
+
+```text
+openSession(config) -> sessionId
+push(sessionId)
+pop(sessionId, levels=1)
+assert(sessionId, assertions[])
+checkSat(sessionId, options) -> { verdict, elapsedMs, stats }
+getModel(sessionId) -> model | null
+getUnsatCore(sessionId) -> core[] | null
+reset(sessionId)
+closeSession(sessionId)
+```
+
+`openSession` initializes logic, option flags, and timeout defaults. `push/pop` is mandatory for expansion loops and temporary assumptions. `getModel` and `getUnsatCore` are legal only after compatible verdicts (`sat` and `unsat`).
+
+Session config includes resource budgets (`timeoutMs`, `maxMemoryMB`). If backend-native memory limits are unavailable, an OS-level guard is required.
+
+Command execution must be serialized per session and aligned with deterministic synchronization markers (for example `(echo "HP_SYNC_<seq>")`) to avoid stdout/stderr desynchronization.
+
+The parser contract must explicitly distinguish `check-sat` single-line verdicts from multi-line s-expression responses (`get-model`, `get-unsat-core`).
+
+## Session Failure and Recovery
+
+The adapter must classify failures into controlled outcomes:
+
+- solver timeout: return `unknown` with timeout marker,
+- recoverable command error: return `error` with command context and keep session open when safe,
+- process crash or broken stream: mark session unhealthy, restart process, and replay stable accepted assertions from journaled state before continuing.
+
+Recovery never replays transient branch assumptions blindly; only committed context up to last successful checkpoint is restored.
+
+After recovery, adapter must emit a structured recovery event (`session-recovered`) so orchestrator re-dispatches pending query plans from top-level state instead of silently continuing mid-check.
 
 ## Persistence Strategy Contract
 
@@ -42,6 +85,16 @@ Optimized strategies (for example relational or embedded databases) can be added
 
 Each query execution must persist a trace with world ID, snapshot ID, formal query, active fragment IDs, chosen strategy, budget values, elapsed timing, and solver artifacts. This trace is the foundation for debugging, governance, and reproducibility.
 
+For incremental sessions, trace data must also include solver session events (`open`, `push`, `pop`, `assert`, `check`, `close`) with sequence numbers so the reasoning path can be reconstructed without ambiguity.
+
+Trace persistence must enforce world-derived policy:
+
+- sensitivity classification label,
+- retention TTL,
+- model/unsat-core redaction rules where required by policy.
+
+Unsat core disclosure is policy-controlled. In restricted contexts, only redacted summaries or fragment IDs are returned.
+
 ## Test Strategy
 
 The MVP test suite should combine unit tests for adapters and integration tests for full query cycles on small synthetic knowledge packs. The expected assertions are deterministic verdicts, stable provenance mapping, and controlled behavior under ambiguity or conflict.
@@ -49,6 +102,8 @@ The MVP test suite should combine unit tests for adapters and integration tests 
 ## Evaluation Orchestration Contract
 
 Comparative evaluation must run across strategy combinations instead of one fixed pipeline. The orchestrator script is `eval/runEval.mjs`.
+
+The CLI script should import orchestration primitives from `src/sdk/eval/` rather than keeping duplicated matrix logic in the script body.
 
 The script should support two execution profiles:
 
@@ -65,6 +120,8 @@ At minimum, every evaluation run records:
 - comparative speed ratio against the fastest combination in that run.
 
 Results should be persisted under `eval/results/` in machine-readable format so trend analysis can be automated later.
+
+Deterministic replay contracts operate on stored `FormalProposal` IR plus solver artifacts. Replay must not re-invoke LLM generation.
 
 ## Controlled Risks
 

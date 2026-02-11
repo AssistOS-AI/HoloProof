@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This design specification defines the first evaluation suite for HoloProof under `evals/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, Intuition strategy, VSA/HDC representation strategy, and controlled LLM profile testing.
+This design specification defines the first evaluation suite for HoloProof under `docs/specs/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, Intuition strategy, VSA/HDC representation strategy, and controlled LLM profile testing.
 
 ## Suite Structure
 
@@ -39,7 +39,20 @@ LLM selection rule for live-generation runs:
 
 ## Combination Profiles
 
-`smoke` profile is a fast confidence pass over default combinations only, intended for local checks and CI preflight. It must include both `NoIntuition` and `VSAIntuition`.
+`smoke` profile is a deterministic stratified subset intended for local checks and CI preflight. It must include both `NoIntuition` and `VSAIntuition`.
+
+The baseline smoke subset is 20 cases (two per track) to avoid coverage bias toward only the first case in each track:
+
+- EV001, EV005
+- EV011, EV017
+- EV021, EV024
+- EV031, EV034
+- EV041, EV046
+- EV051, EV055
+- EV061, EV066
+- EV071, EV079
+- EV081, EV084
+- EV091, EV098
 
 `all` profile is a full sweep over all configured strategy families, including both baseline VSA/HDC representations for `VSAIntuition`. This is used for comparative speed analysis and regression trend tracking.
 
@@ -194,11 +207,55 @@ Each evaluation case should be stored as a structured object with at least:
 
 `id`, `track`, `title`, `input`, `worldSetup`, `expectedVerdict`, `expectedEvidenceType`, `allowedAmbiguities`, `budgets`, `notes`.
 
+## WorldSetup Action DSL
+
+`worldSetup` is a declarative list of `WorldAction` objects so the runner can replay setup deterministically before each case query.
+
+Minimal `WorldAction` shape:
+
+`action`, `params`, optional `captureAs`.
+
+Required MVP actions:
+
+- `createWorld` (`worldId`, optional `fromSnapshotId`),
+- `setStrategy` (`smtStrategy`, `intuitionStrategy`, `vsaRepresentation`, `llmProfile`),
+- `setWorldPolicy` (`sensitivity`, redaction and retention policy flags),
+- `ingestProposal` (`formalProposal` object compliant with DS004),
+- `promoteProposal` (`proposalId`, optional `expectedRegistryVersion` compare-and-swap guard),
+- `snapshot` (`worldId`, optional `label`, optional `captureAs`),
+- `forkWorld` (`fromWorldId`, `fromSnapshotId`, `newWorldId`),
+- `switchWorld` (`worldId`).
+
+Example:
+
+```json
+{
+  "id": "EV081",
+  "track": "T9",
+  "worldSetup": [
+    { "action": "createWorld", "params": { "worldId": "w_main" } },
+    {
+      "action": "ingestProposal",
+      "params": { "formalProposalRef": "fixtures/proposals/ev081_base.json" },
+      "captureAs": "p1"
+    },
+    { "action": "promoteProposal", "params": { "proposalId": "$p1", "targetState": "accepted" } },
+    { "action": "snapshot", "params": { "worldId": "w_main", "label": "baseline" }, "captureAs": "s1" },
+    { "action": "forkWorld", "params": { "fromWorldId": "w_main", "fromSnapshotId": "$s1", "newWorldId": "w_alt" } },
+    { "action": "switchWorld", "params": { "worldId": "w_alt" } }
+  ]
+}
+```
+
+The runner must fail fast on unknown `action` values or unresolved references (`$name`) to keep suite behavior deterministic.
+
 Each execution result should include:
 
 `caseId`, `combinationId`, `status`, `elapsedMs`, `verdict`, and optional `error`.
 
 Run-level metadata should include `llmInvocationMode` and cache-path identifiers used for SMT artifacts.
+
+Replay-focused cases (for example EV098) must execute in IR replay mode (`FormalProposal` + solver only), without live LLM regeneration.
 
 ## Execution and Scoring
 

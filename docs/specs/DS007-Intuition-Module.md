@@ -24,6 +24,12 @@ The module exposes a stable strategy interface:
 
 When strategy is `NoIntuition`, diagnostics should explicitly report that heuristic ranking is disabled.
 
+## Shared Positional Binding Requirement
+
+All `VSAIntuition` representation strategies must preserve argument-order semantics through a shared positional-role contract. This prevents collisions such as treating `likes(Alice, Bob)` as equivalent to `likes(Bob, Alice)`.
+
+Concrete binding operators are strategy-specific and are defined in DS008 and DS009, but both must encode predicate role and argument-position roles deterministically.
+
 ## Evaluation Requirement
 
 All benchmark runs must include both strategies. Comparative reporting should always show delta versus `NoIntuition`, so speedups or regressions from `VSAIntuition` remain measurable and auditable.
