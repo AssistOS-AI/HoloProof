@@ -10,9 +10,9 @@ HoloProof turns text questions and ingested documents into formal constraints, e
 
 The solver is the authority for truth inside the formalized world. LLMs are used for translation and explanation, not for final logical guarantees. The intuition layer (VSA/HDC/HRR) accelerates retrieval and context selection, but proof obligations always return to the solver.
 
-## MVP Boundaries
+## Delivery Boundaries
 
-The first implementation focuses on five capabilities: document ingestion, proposal-to-formalization flow, solver-backed querying, world-based session isolation, and traceable response generation. The MVP does not attempt perfect open-domain understanding; ambiguous content is surfaced for clarification instead of being silently guessed.
+The current implementation baseline focuses on five capabilities: document ingestion, proposal-to-formalization flow, solver-backed querying, world-based session isolation, and traceable response generation. The system does not attempt perfect open-domain understanding; ambiguous content is surfaced for clarification instead of being silently guessed.
 
 ## Success Criteria
 

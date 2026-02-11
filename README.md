@@ -73,6 +73,7 @@ Initial intuition-related strategy baselines used in evaluation:
 
 - Intuition: `no-intuition`, `vsa-intuition`
 - VSA/HDC representation: `vsa-hrr-cosine-topk`, `vsa-hdc-binary-hamming-topk`
+- Registry context (live LLM mode): `registry-context-usage-topk`, `registry-context-vsa-similarity-topk`
 
 Evaluation default is cached SMT execution (no live LLM generation). Use `--llm` when validating live LLM generation quality.
 

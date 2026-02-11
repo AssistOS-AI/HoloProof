@@ -2,7 +2,7 @@
 
 ## Reasoning Modes
 
-The reasoning module executes three primary verification modes in MVP form: entailment checking (typically via refuting negation), model finding for existential questions, and consistency validation for world health checks. Each mode runs under explicit budgets for timeout, active atom count, and expansion rounds.
+The reasoning module executes three primary verification modes in the baseline implementation: entailment checking (typically via refuting negation), model finding for existential questions, and consistency validation for world health checks. Each mode runs under explicit budgets for timeout, active atom count, and expansion rounds.
 
 Incremental solver usage is mandatory. The engine keeps a live context and uses `push/pop` to extend or narrow assumptions during iterative search.
 
@@ -23,6 +23,7 @@ The evaluation matrix should vary:
 - SMT strategy combinations (backend plus solving style), at minimum with both `z3` and `cvc5`.
 - Intuition strategy mode: `NoIntuition` and `VSAIntuition`.
 - VSA/HDC representation strategy used by `VSAIntuition`: initial baseline set is HRR cosine ranking and Binary HDC Hamming ranking.
+- Registry context selection strategy for LLM encoding: `usage-topk` and `vsa-similarity-topk`.
 
 These strategy dimensions are benchmarked jointly, because real performance depends on interaction effects between solver behavior and candidate-selection behavior.
 
@@ -86,7 +87,7 @@ Minimal shape:
 }
 ```
 
-Expression IR is intentionally compact and deterministic. MVP operators are sufficient for practical coverage: `const`, `var`, `call`, `not`, `and`, `or`, `=>`, `=`, arithmetic comparators, and quantifiers (`forall`, `exists`).
+Expression IR is intentionally compact and deterministic. Baseline operators for practical coverage are: `const`, `var`, `call`, `not`, `and`, `or`, `=>`, `=`, arithmetic comparators, and quantifiers (`forall`, `exists`).
 
 Identifier grammar is strict: `^[A-Za-z_][A-Za-z0-9_]*$`. Non-matching names are invalid at schema gate.
 
@@ -114,6 +115,11 @@ To keep reproducibility and cache hits stable, SMT generation from `FormalPropos
 ## Registry Context Budget for LLM
 
 Large registries must be filtered before LLM encoding prompts. Context selection should prioritize high-usage and query-relevant symbols under a bounded size budget (for example top-k symbols plus aliases), while preserving deterministic selection rules.
+
+Two baseline strategies are required:
+
+- `usage-topk`: deterministic ranking by usage and lexical overlap.
+- `vsa-similarity-topk`: deterministic VSA similarity ranking between query context and symbol metadata, with usage as tie-breaker.
 
 ## ResponseDecoder Evidence Anchoring
 

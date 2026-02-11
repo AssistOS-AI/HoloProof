@@ -50,6 +50,8 @@ Persistence must be strategy-based. The first persistence strategy is intentiona
 
 Evaluation runs must benchmark strategy combinations across SMT, Intuition strategy, and VSA/HDC representation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.
 
+For live LLM generation runs, evaluation also benchmarks registry-context strategies for encoder prompts: `registry-context-usage-topk` and `registry-context-vsa-similarity-topk`.
+
 Default evaluation mode is cached SMT (no live LLM calls during case execution). Live LLM generation is enabled explicitly (for example with `--llm`) when testing encoder/model behavior.
 
 The evaluation CLI entry point remains `eval/runEval.mjs`, but orchestration logic belongs to `src/sdk/eval/` and is imported by the CLI wrapper.

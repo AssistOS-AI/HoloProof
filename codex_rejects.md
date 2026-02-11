@@ -32,4 +32,4 @@ This file lists proposals from `claude_observations.md` that are not adopted in 
   Adopted as evidence-anchor validation utilities and uncertainty phrasing rules; not a full natural-language theorem prover in the decoder.
 
 - Large registry handling:
-  Adopted as deterministic top-k context selection by usage/relevance and alias metadata; not full ontology-level semantic search in MVP.
+  Adopted as two deterministic strategies (`usage-topk` and `vsa-similarity-topk`) plus alias metadata; full ontology-level semantic search remains out of MVP scope.

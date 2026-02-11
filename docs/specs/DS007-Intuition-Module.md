@@ -2,7 +2,7 @@
 
 ## Scope
 
-This specification defines the Intuition module contract for HoloProof and the two initial strategies supported in MVP: `NoIntuition` and `VSAIntuition`.
+This specification defines the Intuition module contract for HoloProof and the two initial baseline strategies: `NoIntuition` and `VSAIntuition`.
 
 ## Module Role
 

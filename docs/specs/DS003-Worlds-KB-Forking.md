@@ -26,7 +26,7 @@ Lifecycle transitions are strict:
 
 Each accepted fragment stores `proposalId` and `registrySnapshotId` so downstream reasoning and explanations remain reproducible.
 
-Accepted fragments are immutable in MVP. Corrections are done through new proposals and forked worlds, not by mutating accepted history in place.
+Accepted fragments are immutable in the baseline architecture. Corrections are done through new proposals and forked worlds, not by mutating accepted history in place.
 
 ## Symbol Registry Contract
 

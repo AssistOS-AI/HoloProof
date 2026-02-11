@@ -30,6 +30,7 @@ Strategy families for matrix generation:
 - SMT strategy: backend + solving style, minimum `z3` and `cvc5`.
 - Intuition strategy: `NoIntuition` and `VSAIntuition`.
 - VSA/HDC representation strategy used when intuition is enabled: HRR cosine ranking and Binary HDC Hamming ranking.
+- Registry context strategy for encoder prompts (when live LLM mode is enabled): `usage-topk` and `vsa-similarity-topk`.
 - LLM profile factor (only when live LLM generation is enabled): first configured Achilles fast model and first configured Achilles deep model.
 
 LLM selection rule for live-generation runs:
@@ -55,6 +56,8 @@ The baseline smoke subset is 20 cases (two per track) to avoid coverage bias tow
 - EV091, EV098
 
 `all` profile is a full sweep over all configured strategy families, including both baseline VSA/HDC representations for `VSAIntuition`. This is used for comparative speed analysis and regression trend tracking.
+
+When live LLM mode is enabled, both registry context strategies must be benchmarked to measure prompt-context selection impact on translation quality and speed.
 
 ## SMT Cache and LLM Invocation Policy
 
@@ -186,7 +189,7 @@ EV086 Rollback to prior snapshot and re-query.
 EV087 Two-level fork tree with independent updates.
 EV088 Cross-world explanation with provenance references.
 EV089 Branch contamination prevention check.
-EV090 Merge-intent simulation reported as unsupported for MVP.
+EV090 Merge-intent simulation reported as unsupported in the baseline release.
 
 ### T10: Unknown Handling and Robustness
 
@@ -215,7 +218,7 @@ Minimal `WorldAction` shape:
 
 `action`, `params`, optional `captureAs`.
 
-Required MVP actions:
+Required baseline actions:
 
 - `createWorld` (`worldId`, optional `fromSnapshotId`),
 - `setStrategy` (`smtStrategy`, `intuitionStrategy`, `vsaRepresentation`, `llmProfile`),
@@ -254,6 +257,7 @@ Each execution result should include:
 `caseId`, `combinationId`, `status`, `elapsedMs`, `verdict`, and optional `error`.
 
 Run-level metadata should include `llmInvocationMode` and cache-path identifiers used for SMT artifacts.
+Run-level metadata should also include `registryContextStrategy` for each combination.
 
 Replay-focused cases (for example EV098) must execute in IR replay mode (`FormalProposal` + solver only), without live LLM regeneration.
 
@@ -282,6 +286,7 @@ Required behavior:
 - include both baseline VSA/HDC representations (HRR and Binary HDC) for `VSAIntuition`,
 - default to `cached-smt` mode with no live LLM calls,
 - support opt-in `--llm` mode for live generation tests,
+- when `--llm` is enabled, include both registry context strategies (`usage-topk`, `vsa-similarity-topk`),
 - when `--llm` is enabled, include both Achilles `fast-default` and `deep-default` LLM profiles,
 - emit machine-readable result artifacts under `eval/results/`.
 

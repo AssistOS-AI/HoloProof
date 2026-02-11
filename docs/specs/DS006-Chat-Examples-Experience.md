@@ -20,7 +20,7 @@ The user should be able to run examples directly into chat without losing contex
 
 When interactive runtime is implemented, Chat tab logic should call SDK interfaces from `src/sdk/` (world management, proposal lifecycle, reasoning traces) instead of embedding domain rules in UI code.
 
-Controls required for MVP demonstration mode:
+Controls required for the baseline demonstration mode:
 
 - `Load Next Example`
 - `Load All Remaining`

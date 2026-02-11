@@ -54,6 +54,7 @@ If `--runner` is provided, each case execution receives:
 - `HP_EVAL_SOLVER`
 - `HP_EVAL_INTUITION_STRATEGY`
 - `HP_EVAL_VSA_REPRESENTATION`
+- `HP_EVAL_REGISTRY_CONTEXT_STRATEGY`
 - `HP_EVAL_LLM_PROFILE`
 - `HP_EVAL_LLM_MODE`
 - `HP_EVAL_LLM_MODEL`
@@ -70,6 +71,11 @@ Initial VSA/HDC baseline representations:
 
 - `vsa-hrr-cosine-topk`
 - `vsa-hdc-binary-hamming-topk`
+
+Registry context strategies used in live LLM mode:
+
+- `registry-context-usage-topk`
+- `registry-context-vsa-similarity-topk`
 
 ## LLM Invocation and SMT Cache
 

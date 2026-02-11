@@ -1,6 +1,6 @@
 # DS005 - Implementation and Validation Plan
 
-## Node.js MVP Profile
+## Node.js Baseline Profile
 
 HoloProof targets Node.js ESM (`.mjs`) with `async/await` and low dependency weight. Z3 and CVC5 are integrated as external subprocesses speaking SMT-LIB2 through stdin/stdout. The VSA/HDC/HRR layer is implemented locally with deterministic hashing and typed arrays (`Float32Array`, `Int32Array`).
 
@@ -97,7 +97,7 @@ Unsat core disclosure is policy-controlled. In restricted contexts, only redacte
 
 ## Test Strategy
 
-The MVP test suite should combine unit tests for adapters and integration tests for full query cycles on small synthetic knowledge packs. The expected assertions are deterministic verdicts, stable provenance mapping, and controlled behavior under ambiguity or conflict.
+The baseline test suite should combine unit tests for adapters and integration tests for full query cycles on small synthetic knowledge packs. The expected assertions are deterministic verdicts, stable provenance mapping, and controlled behavior under ambiguity or conflict.
 
 ## Evaluation Orchestration Contract
 
@@ -112,7 +112,7 @@ The script should support two execution profiles:
 
 At minimum, every evaluation run records:
 
-- strategy tuple (SMT + Intuition strategy + VSA/HDC representation + LLM profile),
+- strategy tuple (SMT + Intuition strategy + VSA/HDC representation + registry context strategy + LLM profile),
 - LLM invocation mode (`cached-smt` vs `live-llm-generation`),
 - pass/fail/unknown/error counts,
 - elapsed timing and average per case,
