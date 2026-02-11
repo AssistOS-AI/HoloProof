@@ -38,7 +38,18 @@ const SMT_STRATEGIES = [
   },
 ];
 
-const VSA_STRATEGIES = [
+const INTUITION_STRATEGIES = [
+  {
+    id: 'no-intuition',
+    usesVSARepresentation: false,
+  },
+  {
+    id: 'vsa-intuition',
+    usesVSARepresentation: true,
+  },
+];
+
+const VSA_REPRESENTATIONS = [
   {
     id: 'vsa-hrr-cosine-topk',
     family: 'hrr',
@@ -49,30 +60,13 @@ const VSA_STRATEGIES = [
     family: 'hdc-binary',
     retrieval: 'hamming-topk',
   },
-  {
-    id: 'vsa-hrr-hdc-hybrid-rerank',
-    family: 'hybrid',
-    retrieval: 'cosine-then-symbolic-rerank',
-  },
 ];
 
-const INTUITION_IMPL_STRATEGIES = [
-  {
-    id: 'intuition-typed-arrays-single-thread',
-    runtime: 'node',
-    parallelism: 'single-thread',
-  },
-  {
-    id: 'intuition-typed-arrays-worker-thread',
-    runtime: 'node',
-    parallelism: 'worker-thread',
-  },
-  {
-    id: 'intuition-wasm-simd',
-    runtime: 'wasm',
-    parallelism: 'simd',
-  },
-];
+const VSA_DISABLED = {
+  id: 'vsa-disabled',
+  family: 'none',
+  retrieval: 'none',
+};
 
 function printUsage() {
   console.log(`HoloProof evaluation matrix runner
@@ -96,8 +90,8 @@ Runner contract:
     HP_EVAL_COMBINATION_ID
     HP_EVAL_SMT_STRATEGY
     HP_EVAL_SOLVER
-    HP_EVAL_VSA_STRATEGY
-    HP_EVAL_INTUITION_IMPL
+    HP_EVAL_INTUITION_STRATEGY
+    HP_EVAL_VSA_REPRESENTATION
     HP_EVAL_LLM_PROFILE
     HP_EVAL_LLM_MODE
     HP_EVAL_LLM_MODEL
@@ -201,7 +195,8 @@ function uniquePreserveOrder(values) {
 async function loadCaseIds(planPath) {
   const text = await fs.readFile(planPath, 'utf8');
   const matches = [...text.matchAll(/\bEV\d{3}\b/g)].map((match) => match[0]);
-  const caseIds = uniquePreserveOrder(matches);
+  const caseIds = uniquePreserveOrder(matches)
+    .sort((left, right) => Number(left.slice(2)) - Number(right.slice(2)));
   if (!caseIds.length) {
     throw new Error(`No EVxxx case IDs found in plan file: ${planPath}`);
   }
@@ -222,22 +217,11 @@ function selectSmokeCases(allCaseIds) {
 }
 
 function buildCombinationId(parts) {
-  return [parts.smt.id, parts.vsa.id, parts.intuition.id, parts.llm.id].join('__');
+  return [parts.smt.id, parts.intuition.id, parts.vsa.id, parts.llm.id].join('__');
 }
 
-function cartesianProduct(arrays) {
-  return arrays.reduce(
-    (acc, current) => {
-      const next = [];
-      for (const left of acc) {
-        for (const right of current) {
-          next.push([...left, right]);
-        }
-      }
-      return next;
-    },
-    [[]],
-  );
+function firstBySolver(solver) {
+  return SMT_STRATEGIES.find((strategy) => strategy.solver === solver) || SMT_STRATEGIES[0];
 }
 
 async function discoverLLMProfiles() {
@@ -293,47 +277,43 @@ async function discoverLLMProfiles() {
   }
 }
 
-function buildAllCombinations(llmProfiles) {
-  const rows = cartesianProduct([
-    SMT_STRATEGIES,
-    VSA_STRATEGIES,
-    INTUITION_IMPL_STRATEGIES,
-    llmProfiles,
-  ]);
+function vsaRepresentationsFor(intuitionStrategy, mode) {
+  if (!intuitionStrategy.usesVSARepresentation) {
+    return [VSA_DISABLED];
+  }
 
-  return rows.map(([smt, vsa, intuition, llm]) => ({
-    id: buildCombinationId({ smt, vsa, intuition, llm }),
-    smt,
-    vsa,
-    intuition,
-    llm,
-  }));
+  if (mode === 'smoke') {
+    return [VSA_REPRESENTATIONS[0]];
+  }
+
+  return VSA_REPRESENTATIONS;
 }
 
-function firstBySolver(solver) {
-  return SMT_STRATEGIES.find((strategy) => strategy.solver === solver) || SMT_STRATEGIES[0];
-}
+function buildCombinations(mode, llmProfiles) {
+  const smtList = mode === 'smoke'
+    ? uniquePreserveOrder([firstBySolver('z3'), firstBySolver('cvc5')])
+    : SMT_STRATEGIES;
 
-function buildSmokeCombinations(llmProfiles) {
-  const smokeSMT = uniquePreserveOrder([
-    firstBySolver('z3'),
-    firstBySolver('cvc5'),
-  ]);
+  const combinations = [];
 
-  const rows = cartesianProduct([
-    smokeSMT,
-    [VSA_STRATEGIES[0]],
-    [INTUITION_IMPL_STRATEGIES[0]],
-    llmProfiles,
-  ]);
+  for (const smt of smtList) {
+    for (const intuition of INTUITION_STRATEGIES) {
+      const vsaList = vsaRepresentationsFor(intuition, mode);
+      for (const vsa of vsaList) {
+        for (const llm of llmProfiles) {
+          combinations.push({
+            id: buildCombinationId({ smt, intuition, vsa, llm }),
+            smt,
+            intuition,
+            vsa,
+            llm,
+          });
+        }
+      }
+    }
+  }
 
-  return rows.map(([smt, vsa, intuition, llm]) => ({
-    id: buildCombinationId({ smt, vsa, intuition, llm }),
-    smt,
-    vsa,
-    intuition,
-    llm,
-  }));
+  return combinations;
 }
 
 function maybeParseRunnerJson(stdout) {
@@ -403,11 +383,15 @@ async function runOneCase({ caseId, combination, runnerCommand, dryRun }) {
     HP_EVAL_COMBINATION_ID: combination.id,
     HP_EVAL_SMT_STRATEGY: combination.smt.id,
     HP_EVAL_SOLVER: combination.smt.solver,
-    HP_EVAL_VSA_STRATEGY: combination.vsa.id,
-    HP_EVAL_INTUITION_IMPL: combination.intuition.id,
+    HP_EVAL_INTUITION_STRATEGY: combination.intuition.id,
+    HP_EVAL_VSA_REPRESENTATION: combination.vsa.id,
     HP_EVAL_LLM_PROFILE: combination.llm.id,
     HP_EVAL_LLM_MODE: combination.llm.mode,
     HP_EVAL_LLM_MODEL: combination.llm.model,
+
+    // Backward-compatible aliases
+    HP_EVAL_VSA_STRATEGY: combination.vsa.id,
+    HP_EVAL_INTUITION_IMPL: combination.intuition.id,
   };
 
   const execution = await runRunnerCommand(runnerCommand, env);
@@ -546,8 +530,8 @@ function buildSummaryCsv(summaryRows) {
     'combinationId',
     'solver',
     'smtStrategy',
-    'vsaStrategy',
-    'intuitionImplementation',
+    'intuitionStrategy',
+    'vsaRepresentation',
     'llmProfile',
     'llmMode',
     'llmModel',
@@ -571,8 +555,8 @@ function buildSummaryCsv(summaryRows) {
       row.combinationId,
       row.strategy.smt.solver,
       row.strategy.smt.id,
-      row.strategy.vsa.id,
       row.strategy.intuition.id,
+      row.strategy.vsa.id,
       row.strategy.llm.id,
       row.strategy.llm.mode,
       row.strategy.llm.model,
@@ -618,9 +602,7 @@ async function main() {
     ? selectedCaseIds.slice(0, args.maxCases)
     : selectedCaseIds;
 
-  const combinations = args.mode === 'smoke'
-    ? buildSmokeCombinations(llmProfiles)
-    : buildAllCombinations(llmProfiles);
+  const combinations = buildCombinations(args.mode, llmProfiles);
 
   const dryRun = args.dryRun || !args.runner;
   const warnings = [];
@@ -702,8 +684,8 @@ async function main() {
     warnings,
     matrix: {
       smtStrategies: SMT_STRATEGIES,
-      vsaStrategies: VSA_STRATEGIES,
-      intuitionImplementationStrategies: INTUITION_IMPL_STRATEGIES,
+      intuitionStrategies: INTUITION_STRATEGIES,
+      vsaRepresentations: VSA_REPRESENTATIONS,
       llmProfiles,
     },
     cases: limitedCaseIds,

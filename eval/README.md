@@ -40,11 +40,21 @@ If `--runner` is provided, each case execution receives:
 - `HP_EVAL_COMBINATION_ID`
 - `HP_EVAL_SMT_STRATEGY`
 - `HP_EVAL_SOLVER`
-- `HP_EVAL_VSA_STRATEGY`
-- `HP_EVAL_INTUITION_IMPL`
+- `HP_EVAL_INTUITION_STRATEGY`
+- `HP_EVAL_VSA_REPRESENTATION`
 - `HP_EVAL_LLM_PROFILE`
 - `HP_EVAL_LLM_MODE`
 - `HP_EVAL_LLM_MODEL`
+
+Initial intuition strategy set:
+
+- `no-intuition`
+- `vsa-intuition`
+
+Initial VSA/HDC baseline representations:
+
+- `vsa-hrr-cosine-topk`
+- `vsa-hdc-binary-hamming-topk`
 
 ## Outputs
 

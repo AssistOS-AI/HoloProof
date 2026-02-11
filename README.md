@@ -41,6 +41,9 @@ Design Specifications:
 - `docs/specs/DS004-Reasoning-Intuition-LLM.md`
 - `docs/specs/DS005-Implementation-Validation.md`
 - `docs/specs/DS006-Chat-Examples-Experience.md`
+- `docs/specs/DS007-Intuition-Module.md`
+- `docs/specs/DS008-VSA-HRR-Strategy.md`
+- `docs/specs/DS009-HDC-Binary-Strategy.md`
 
 Evaluation specification:
 
@@ -57,6 +60,11 @@ Example commands:
 node eval/runEval.mjs --mode smoke
 node eval/runEval.mjs --mode all
 ```
+
+Initial intuition-related strategy baselines used in evaluation:
+
+- Intuition: `no-intuition`, `vsa-intuition`
+- VSA/HDC representation: `vsa-hrr-cosine-topk`, `vsa-hdc-binary-hamming-topk`
 
 ## Language Policy
 

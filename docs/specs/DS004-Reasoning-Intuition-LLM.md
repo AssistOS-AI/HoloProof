@@ -24,6 +24,8 @@ The evaluation matrix should vary:
 
 These strategy dimensions are benchmarked jointly, because real performance depends on interaction effects between solver behavior and candidate-selection behavior.
 
+Detailed Intuition strategy definitions are specified in `docs/specs/DS007-Intuition-Module.md`, `docs/specs/DS008-VSA-HRR-Strategy.md`, and `docs/specs/DS009-HDC-Binary-Strategy.md`.
+
 ## LLM as Controlled Transducer
 
 LLMs are responsible for structured transformations, not logical authority. `LLMEncoder` and `QueryEncoder` should emit structured JSON first, then generate SMT-LIB2 only after local schema validation.

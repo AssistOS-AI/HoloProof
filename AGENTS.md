@@ -20,6 +20,9 @@ The project specification map is organized under `docs/specs/` and currently inc
 - `docs/specs/DS004-Reasoning-Intuition-LLM.md`
 - `docs/specs/DS005-Implementation-Validation.md`
 - `docs/specs/DS006-Chat-Examples-Experience.md`
+- `docs/specs/DS007-Intuition-Module.md`
+- `docs/specs/DS008-VSA-HRR-Strategy.md`
+- `docs/specs/DS009-HDC-Binary-Strategy.md`
 - `evals/DS100-Evaluation-Suite-Plan.md`
 - `eval/runEval.mjs`
 
@@ -39,4 +42,14 @@ For formal reasoning, keep a common adapter interface and allow at least `z3` an
 
 For LLM functionality, reuse the API from the parent folder `../AchillesAgentLib` (not custom ad-hoc provider calls in core modules). The expected integration style is through the `LLMAgent` abstraction and its existing fast/deep model-routing support.
 
-Evaluation runs must benchmark strategy combinations across SMT, VSA, and Intuition implementation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.
+Evaluation runs must benchmark strategy combinations across SMT, Intuition strategy, and VSA/HDC representation dimensions, and include both Achilles `fast-default` and `deep-default` LLM profiles when available.
+
+Initial Intuition strategy baseline:
+
+- `no-intuition`
+- `vsa-intuition`
+
+Initial VSA/HDC representation baseline for `vsa-intuition`:
+
+- `vsa-hrr-cosine-topk`
+- `vsa-hdc-binary-hamming-topk`
