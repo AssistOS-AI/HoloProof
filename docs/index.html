@@ -3,93 +3,273 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HoloProof Documentation</title>
+  <title>HoloProof Documentation Hub</title>
   <style>
     :root {
-      --bg: #f8fafc;
+      --bg: #f3f5f7;
+      --ink: #14212b;
+      --muted: #4d5b66;
       --panel: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --line: #cbd5e1;
-      --accent: #0c4a6e;
+      --line: #d6dce2;
+      --accent: #0f766e;
+      --accent-soft: #e6fffb;
+      --title: #0b1b28;
+      --shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
     }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      padding: 32px 18px;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(160deg, #f8fafc 0%, #e2e8f0 100%);
-      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 15% -10%, #d9f7f2 0%, transparent 60%),
+        radial-gradient(900px 500px at 95% 5%, #ecfdf5 0%, transparent 60%),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Avenir Next", "Trebuchet MS", "Gill Sans", sans-serif;
+      line-height: 1.55;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    .wrap {
-      max-width: 900px;
+
+    .container {
+      width: min(1120px, 100% - 28px);
       margin: 0 auto;
+    }
+
+    .hero {
+      padding: 34px 0 16px;
+    }
+
+    .hero-card {
+      background: linear-gradient(130deg, #0f766e 0%, #0b5560 65%, #10324a 100%);
+      color: #f8fffe;
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+      letter-spacing: 0.01em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 75ch;
+      color: #daf9f4;
+      font-size: clamp(1rem, 1.5vw, 1.06rem);
+    }
+
+    main {
+      padding: 12px 0 26px;
+      flex: 1;
+    }
+
+    section {
+      margin-bottom: 20px;
+    }
+
+    section h2 {
+      margin: 0 0 11px;
+      font-size: 1.2rem;
+      color: var(--title);
+      letter-spacing: 0.01em;
+    }
+
+    section p.section-intro {
+      margin: 0 0 12px;
+      color: var(--muted);
+      max-width: 90ch;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 14px;
-      padding: 26px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      padding: 14px 14px 12px;
+      transition: transform 130ms ease, box-shadow 160ms ease, border-color 160ms ease;
+      box-shadow: 0 6px 16px rgba(20, 33, 43, 0.05);
+      min-height: 120px;
     }
-    h1 {
-      margin-top: 0;
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: #8bd7ce;
+      box-shadow: 0 10px 22px rgba(20, 33, 43, 0.11);
+    }
+
+    .meta {
+      display: inline-block;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0f766e;
+      background: var(--accent-soft);
+      border: 1px solid #99f6e4;
+      padding: 3px 7px;
+      border-radius: 999px;
       margin-bottom: 8px;
-      font-size: 1.8rem;
+      font-weight: 700;
     }
-    p {
+
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 1.03rem;
+      color: #102634;
+    }
+
+    .card p {
+      margin: 0;
       color: var(--muted);
-      line-height: 1.6;
-      margin-top: 0;
+      font-size: 0.94rem;
     }
-    .spec-list a {
-      display: block;
-      margin: 10px 0;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      text-decoration: none;
-      color: var(--text);
-      background: #f8fafc;
+
+    footer {
+      border-top: 1px solid var(--line);
+      background: #f9fbfc;
+      padding: 18px 0 22px;
+      margin-top: 10px;
     }
-    .spec-list a:hover {
-      border-color: var(--accent);
-      background: #ecfeff;
+
+    footer p {
+      margin: 7px 0;
+      color: #3d4b56;
+      font-size: 0.92rem;
     }
-    .hint {
-      margin-top: 18px;
-      font-size: 0.95rem;
-      color: var(--muted);
+
+    @media (max-width: 820px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card {
+        padding: 18px;
+      }
     }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <h1>HoloProof Documentation</h1>
-    <p>
-      This page is the main documentation index.
-      Specifications are opened through <code>loader.html</code>, and installation is available as a dedicated HTML guide.
-    </p>
-    <p>
-      Repository-level overview for GitHub is available in <code>README.md</code>.
-    </p>
-
-    <div class="spec-list">
-      <a href="installation.html">Installation Guide</a>
-      <a href="usage-guide.html">Usage Guide (Chat + Examples Demo)</a>
-      <a href="loader.html?doc=specs/DS001-Vision.md">DS001 - Vision</a>
-      <a href="loader.html?doc=specs/DS002-Architecture.md">DS002 - Architecture</a>
-      <a href="loader.html?doc=specs/DS003-Worlds-KB-Forking.md">DS003 - Worlds, Knowledge Base, and Forking</a>
-      <a href="loader.html?doc=specs/DS004-Reasoning-Intuition-LLM.md">DS004 - Reasoning, Intuition, and LLM Contracts</a>
-      <a href="loader.html?doc=specs/DS005-Implementation-Validation.md">DS005 - Implementation and Validation Plan</a>
-      <a href="loader.html?doc=specs/DS006-Chat-Examples-Experience.md">DS006 - Chat and Examples Experience</a>
-      <a href="loader.html?doc=specs/DS007-Intuition-Module.md">DS007 - Intuition Module</a>
-      <a href="loader.html?doc=specs/DS008-VSA-HRR-Strategy.md">DS008 - VSA Strategy: HRR Cosine Ranking</a>
-      <a href="loader.html?doc=specs/DS009-HDC-Binary-Strategy.md">DS009 - VSA Strategy: Binary HDC Hamming Ranking</a>
-      <a href="../evals/DS100-Evaluation-Suite-Plan.md">DS100 - Evaluation Suite Plan (in evals/)</a>
-      <a href="../eval/README.md">Evaluation Runner Guide (eval/)</a>
+  <header class="hero">
+    <div class="container">
+      <div class="hero-card">
+        <h1>HoloProof Documentation Hub</h1>
+        <p>
+          Central index for installation, usage, design specifications, and evaluation references.
+          General guides are separated from DS documents for faster onboarding and easier navigation.
+        </p>
+      </div>
     </div>
+  </header>
 
-    <p class="hint">
-      If needed, you can load another Markdown file by changing the <code>doc</code> query parameter in <code>loader.html</code>.
-    </p>
+  <main>
+    <div class="container">
+      <section>
+        <h2>General Documentation</h2>
+        <p class="section-intro">Start here for setup and practical usage patterns before going into internal design specifications.</p>
+        <div class="cards">
+          <a class="card" href="installation.html">
+            <span class="meta">Guide</span>
+            <h3>Installation Guide</h3>
+            <p>Environment prerequisites, solver setup, LLM integration baseline, and validation steps.</p>
+          </a>
+          <a class="card" href="usage-guide.html">
+            <span class="meta">Guide</span>
+            <h3>Usage Guide (Chat + Examples)</h3>
+            <p>Prompt formulation advice and interactive demo with chat reasoning traces and curated examples.</p>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <h2>Design Specifications</h2>
+        <p class="section-intro">Specification map for architecture, worlds, reasoning contracts, UI behavior, and intuition strategies.</p>
+        <div class="cards">
+          <a class="card" href="loader.html?doc=specs/DS001-Vision.md">
+            <span class="meta">DS001</span>
+            <h3>Vision</h3>
+            <p>Project purpose, solver-first truth model, and MVP boundaries.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS002-Architecture.md">
+            <span class="meta">DS002</span>
+            <h3>Architecture</h3>
+            <p>Core components, adapters, and evidence-preserving orchestration flow.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS003-Worlds-KB-Forking.md">
+            <span class="meta">DS003</span>
+            <h3>Worlds, KB, and Forking</h3>
+            <p>Versioned worlds, snapshot semantics, and controlled branch comparison.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS004-Reasoning-Intuition-LLM.md">
+            <span class="meta">DS004</span>
+            <h3>Reasoning, Intuition, and LLM Contracts</h3>
+            <p>Incremental SMT loops, controlled LLM behavior, and benchmark dimensions.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS005-Implementation-Validation.md">
+            <span class="meta">DS005</span>
+            <h3>Implementation and Validation Plan</h3>
+            <p>Node.js MVP profile, observability model, and evaluation orchestration contract.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS006-Chat-Examples-Experience.md">
+            <span class="meta">DS006</span>
+            <h3>Chat and Examples Experience</h3>
+            <p>Two-tab UX model with replay controls for formal-reasoning demonstrations.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS007-Intuition-Module.md">
+            <span class="meta">DS007</span>
+            <h3>Intuition Module</h3>
+            <p>Module contract and baseline intuition strategies: NoIntuition and VSAIntuition.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS008-VSA-HRR-Strategy.md">
+            <span class="meta">DS008</span>
+            <h3>VSA Strategy: HRR Cosine</h3>
+            <p>Dense hypervector representation and top-k cosine ranking behavior.</p>
+          </a>
+          <a class="card" href="loader.html?doc=specs/DS009-HDC-Binary-Strategy.md">
+            <span class="meta">DS009</span>
+            <h3>VSA Strategy: Binary HDC</h3>
+            <p>Binary hyperdimensional representation and Hamming-distance ranking behavior.</p>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <h2>Evaluation References</h2>
+        <p class="section-intro">Evaluation planning and execution tooling for strategy-combination benchmarking.</p>
+        <div class="cards">
+          <a class="card" href="../evals/DS100-Evaluation-Suite-Plan.md">
+            <span class="meta">DS100</span>
+            <h3>Evaluation Suite Plan</h3>
+            <p>100-case plan, track distribution, and scoring model for formal reasoning quality and speed.</p>
+          </a>
+          <a class="card" href="../eval/README.md">
+            <span class="meta">Eval</span>
+            <h3>Evaluation Runner Guide</h3>
+            <p>How to run smoke/all strategy combinations and inspect generated benchmarking artifacts.</p>
+          </a>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <footer>
+    <div class="container">
+      <p>Research conducted by Axiologic Research as part of the European research project Achilles.</p>
+      <p>Commercialization partnership with LydiaRX Venture Studio.</p>
+      <p>Disclaimer: this documentation was generated with AI assistance (LLMs) and may contain errors, exaggerations, or hallucinations. The public experiments are open source—verify claims by examining the code, evaluation suites, and automated tests.</p>
+    </div>
+  </footer>
 </body>
 </html>
