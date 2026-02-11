@@ -11,6 +11,7 @@ export async function executeFormalQueryPipeline(options = {}) {
     intuition: options.intuition || null,
     registryEntries: options.registryEntries || [],
     budget: options.budget || {},
+    abortSignal: options.abortSignal || null,
   });
 
   const response = buildResponseDecisionContext({

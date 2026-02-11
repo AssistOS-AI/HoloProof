@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  createIntuitionStrategy,
   buildResponseDecisionContext,
   decideGapAction,
   executeFormalQueryPipeline,
@@ -109,6 +110,38 @@ test('runReasoningQuery expands active fragments when verdict remains unknown', 
   assert.equal(result.queryVerdict, 'entailed');
 });
 
+test('runReasoningQuery can use intuition ranking when ranked IDs are not provided', async () => {
+  const solver = buildFakeSolver([{ verdict: 'unsat', elapsedMs: 2 }]);
+  const intuition = createIntuitionStrategy({
+    strategy: 'vsa-intuition',
+    representation: 'vsa-hrr-cosine-topk',
+    dim: 128,
+  });
+
+  const result = await runReasoningQuery({
+    solverAdapter: solver,
+    sessionId: 's1',
+    intuition,
+    queryPlan: {
+      verificationMode: 'entailment',
+      goal: { op: 'call', symbol: 'eligible', args: [{ op: 'const', name: 'Ana' }] },
+    },
+    fragments: baseFragments(),
+    registryEntries: registryEntries(),
+    budget: {
+      maxExpansionRounds: 1,
+      expansionStep: 2,
+      maxActiveAtoms: 2,
+      timeoutMs: 100,
+    },
+  });
+
+  assert.equal(result.solverVerdict, 'unsat');
+  assert.equal(result.intuition.used, true);
+  assert.ok(Array.isArray(result.intuition.rankedFragmentIds));
+  assert.ok(result.intuition.rankedFragmentIds.length > 0);
+});
+
 test('decideGapAction can choose llm-autofill for small KB gaps', () => {
   const decision = decideGapAction({
     solverOutcome: { verdict: 'unknown' },
@@ -177,5 +210,5 @@ test('executeFormalQueryPipeline returns reasoning plus response decision', asyn
 
   assert.equal(run.reasoning.solverVerdict, 'sat');
   assert.equal(run.response.decision.action, 'answer');
-  assert.ok(run.response.narrationPrefix.toLowerCase().includes('solver evidence'));
+  assert.ok(run.response.narrationPrefix.toLowerCase().includes('formal model'));
 });

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "node --test tests/**/*.test.mjs",
-    "eval:smoke": "node eval/runEval.mjs --mode smoke",
-    "eval:all": "node eval/runEval.mjs --mode all"
+    "eval": "node eval/runEval.mjs --mode smoke",
+    "eval:all": "node eval/runEval.mjs --mode all",
+    "chat": "node chat/server.mjs"
   }
 }

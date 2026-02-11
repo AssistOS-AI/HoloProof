@@ -18,6 +18,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_fam_001', worldId: '_',
+        logic: 'QF_UF',
         source: src('fam_rules', 80),
         declarations: [
           { kind: 'sort', name: 'Person' },
@@ -31,10 +32,12 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_heir_rule', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'x', sort: 'Person' }],
-              body: { op: '=>', args: [
-                { op: 'call', symbol: 'childOf', args: [{ op: 'var', name: 'x' }, { op: 'const', name: 'Maria' }] },
-                { op: 'call', symbol: 'legalHeir', args: [{ op: 'var', name: 'x' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  { op: 'call', symbol: 'childOf', args: [{ op: 'var', name: 'x' }, { op: 'const', name: 'Maria' }] },
+                  { op: 'call', symbol: 'legalHeir', args: [{ op: 'var', name: 'x' }] },
+                ]
+              },
             },
           },
           {
@@ -70,6 +73,17 @@ export const DEMO_SCENARIOS = [
           evidence: { fragmentIds: ['frag_00001'], modelKeys: ['witness_person'], verdict: 'sat' },
         },
       },
+      {
+        prompt: 'Given only these rules and facts, can we prove that Maria is also a legal heir?',
+        formalTarget: 'Negative entailment check when no supporting fact exists.',
+        simulatedResult: {
+          verdict: 'sat',
+          interpretation: 'not-entailed',
+          reasoning: 'Only rule: childOf(x, Maria) -> legalHeir(x).\nKnown fact: childOf(Ana, Maria).\nNo fact implies childOf(Maria, Maria), so legalHeir(Maria) is not derivable.',
+          answer: 'No. The current world does not entail that Maria is a legal heir.',
+          evidence: { fragmentIds: ['frag_00001', 'frag_00002'], modelKeys: ['Maria_status'], verdict: 'sat' },
+        },
+      },
     ],
   },
 
@@ -81,6 +95,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_acl_001', worldId: '_',
+        logic: 'QF_UF',
         source: src('acl_policy', 120),
         declarations: [
           { kind: 'sort', name: 'User' },
@@ -97,10 +112,12 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_export_rule', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'u', sort: 'User' }],
-              body: { op: '=>', args: [
-                { op: 'call', symbol: 'canExportPayroll', args: [{ op: 'var', name: 'u' }] },
-                { op: 'call', symbol: 'hasRole', args: [{ op: 'var', name: 'u' }, { op: 'const', name: 'FinanceAdmin' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  { op: 'call', symbol: 'canExportPayroll', args: [{ op: 'var', name: 'u' }] },
+                  { op: 'call', symbol: 'hasRole', args: [{ op: 'var', name: 'u' }, { op: 'const', name: 'FinanceAdmin' }] },
+                ]
+              },
             },
           },
           {
@@ -129,6 +146,17 @@ export const DEMO_SCENARIOS = [
           evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], modelKeys: ['Dan_roles'], verdict: 'sat' },
         },
       },
+      {
+        prompt: 'Assume only FinanceAdmin can export payroll and Dan has Analyst + Auditor roles. Is denying export to Dan logically justified?',
+        formalTarget: 'Policy justification via refutation of required role.',
+        simulatedResult: {
+          verdict: 'sat',
+          interpretation: 'not-entailed',
+          reasoning: 'Policy says export implies FinanceAdmin.\nFacts do not include hasRole(Dan, FinanceAdmin).\nTherefore canExportPayroll(Dan) is not entailed.',
+          answer: 'Yes, denial is justified under current policy because FinanceAdmin is missing.',
+          evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], modelKeys: ['required_role'], verdict: 'sat' },
+        },
+      },
     ],
   },
 
@@ -140,6 +168,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_sched_001', worldId: '_',
+        logic: 'QF_LIA',
         source: src('calendar', 90),
         declarations: [
           { kind: 'sort', name: 'Meeting' },
@@ -154,13 +183,17 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_overlap_def', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'a', sort: 'Meeting' }, { name: 'b', sort: 'Meeting' }],
-              body: { op: '=>', args: [
-                { op: 'and', args: [
-                  { op: '<', args: [{ op: 'call', symbol: 'startTime', args: [{ op: 'var', name: 'a' }] }, { op: 'call', symbol: 'endTime', args: [{ op: 'var', name: 'b' }] }] },
-                  { op: '<', args: [{ op: 'call', symbol: 'startTime', args: [{ op: 'var', name: 'b' }] }, { op: 'call', symbol: 'endTime', args: [{ op: 'var', name: 'a' }] }] },
-                ]},
-                { op: 'call', symbol: 'overlaps', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  {
+                    op: 'and', args: [
+                      { op: '<', args: [{ op: 'call', symbol: 'startTime', args: [{ op: 'var', name: 'a' }] }, { op: 'call', symbol: 'endTime', args: [{ op: 'var', name: 'b' }] }] },
+                      { op: '<', args: [{ op: 'call', symbol: 'startTime', args: [{ op: 'var', name: 'b' }] }, { op: 'call', symbol: 'endTime', args: [{ op: 'var', name: 'a' }] }] },
+                    ]
+                  },
+                  { op: 'call', symbol: 'overlaps', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
+                ]
+              },
             },
           },
           {
@@ -197,6 +230,17 @@ export const DEMO_SCENARIOS = [
           evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003', 'frag_00004', 'frag_00005'], unsatCoreIds: ['ax_overlap_def', 'fact_a_start', 'fact_a_end', 'fact_b_start', 'fact_b_end'], verdict: 'unsat' },
         },
       },
+      {
+        prompt: 'If overlap means startA < endB and startB < endA, can a zero-minute touch at boundaries count as overlap in this world?',
+        formalTarget: 'Semantic check for strict inequality boundary behavior.',
+        simulatedResult: {
+          verdict: 'sat',
+          interpretation: 'not-entailed',
+          reasoning: 'Overlap is encoded with strict < comparisons.\nBoundary equality does not satisfy strict inequalities.\nZero-minute touch is excluded unless rule is changed.',
+          answer: 'No. In this model, boundary-touching meetings are not overlaps because inequalities are strict.',
+          evidence: { fragmentIds: ['frag_00001'], modelKeys: ['strict_inequality'], verdict: 'sat' },
+        },
+      },
     ],
   },
 
@@ -208,6 +252,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_pol_001', worldId: '_',
+        logic: 'QF_UF',
         source: src('policy_doc', 100),
         declarations: [
           { kind: 'sort', name: 'Employee' },
@@ -220,23 +265,29 @@ export const DEMO_SCENARIOS = [
             assertionId: 'rule1_vpn', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'e', sort: 'Employee' }],
-              body: { op: '=>', args: [
-                { op: 'and', args: [
-                  { op: 'call', symbol: 'isRemote', args: [{ op: 'var', name: 'e' }] },
-                  { op: 'call', symbol: 'isContractor', args: [{ op: 'var', name: 'e' }] },
-                ]},
-                { op: 'call', symbol: 'mustUseVPN', args: [{ op: 'var', name: 'e' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  {
+                    op: 'and', args: [
+                      { op: 'call', symbol: 'isRemote', args: [{ op: 'var', name: 'e' }] },
+                      { op: 'call', symbol: 'isContractor', args: [{ op: 'var', name: 'e' }] },
+                    ]
+                  },
+                  { op: 'call', symbol: 'mustUseVPN', args: [{ op: 'var', name: 'e' }] },
+                ]
+              },
             },
           },
           {
             assertionId: 'rule2_no_vpn', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'e', sort: 'Employee' }],
-              body: { op: '=>', args: [
-                { op: 'call', symbol: 'isContractor', args: [{ op: 'var', name: 'e' }] },
-                { op: 'not', arg: { op: 'call', symbol: 'mustUseVPN', args: [{ op: 'var', name: 'e' }] } },
-              ]},
+              body: {
+                op: '=>', args: [
+                  { op: 'call', symbol: 'isContractor', args: [{ op: 'var', name: 'e' }] },
+                  { op: 'not', arg: { op: 'call', symbol: 'mustUseVPN', args: [{ op: 'var', name: 'e' }] } },
+                ]
+              },
             },
           },
         ],
@@ -257,6 +308,17 @@ export const DEMO_SCENARIOS = [
           evidence: { unsatCoreIds: ['rule1_vpn', 'rule2_no_vpn'], verdict: 'unsat' },
         },
       },
+      {
+        prompt: 'Do rules 1 and 2 create a contradiction specifically for remote contractors?',
+        formalTarget: 'Targeted contradiction extraction with unsat core.',
+        simulatedResult: {
+          verdict: 'unsat',
+          interpretation: 'inconsistent',
+          reasoning: 'Remote contractor satisfies both antecedents.\nRule1 gives mustUseVPN(e).\nRule2 gives not mustUseVPN(e).\nBoth cannot hold simultaneously.',
+          answer: 'Yes, they directly contradict for remote contractors.',
+          evidence: { unsatCoreIds: ['rule1_vpn', 'rule2_no_vpn'], verdict: 'unsat' },
+        },
+      },
     ],
   },
 
@@ -268,6 +330,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_elig_001', worldId: '_',
+        logic: 'QF_LIA',
         source: src('scholarship_rules', 70),
         declarations: [
           { kind: 'sort', name: 'Student' },
@@ -281,13 +344,17 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_elig_rule', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 's', sort: 'Student' }],
-              body: { op: '=>', args: [
-                { op: 'and', args: [
-                  { op: '>=', args: [{ op: 'call', symbol: 'gpa', args: [{ op: 'var', name: 's' }] }, { op: 'const', name: 'val_35' }] },
-                  { op: '<', args: [{ op: 'call', symbol: 'income', args: [{ op: 'var', name: 's' }] }, { op: 'const', name: 'val_40000' }] },
-                ]},
-                { op: 'call', symbol: 'eligible', args: [{ op: 'var', name: 's' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  {
+                    op: 'and', args: [
+                      { op: '>=', args: [{ op: 'call', symbol: 'gpa', args: [{ op: 'var', name: 's' }] }, { op: 'const', name: 'val_35' }] },
+                      { op: '<', args: [{ op: 'call', symbol: 'income', args: [{ op: 'var', name: 's' }] }, { op: 'const', name: 'val_40000' }] },
+                    ]
+                  },
+                  { op: 'call', symbol: 'eligible', args: [{ op: 'var', name: 's' }] },
+                ]
+              },
             },
           },
           {
@@ -316,6 +383,17 @@ export const DEMO_SCENARIOS = [
           evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], modelKeys: ['gpa_Eva', 'income_Eva'], verdict: 'sat' },
         },
       },
+      {
+        prompt: 'Can we prove Eva is ineligible because one threshold fails even though GPA passes?',
+        formalTarget: 'Conjunctive antecedent failure reasoning.',
+        simulatedResult: {
+          verdict: 'sat',
+          interpretation: 'not-entailed',
+          reasoning: 'Rule requires both GPA and income conditions.\nGPA passes; income threshold fails.\nEligibility cannot be derived from partial satisfaction.',
+          answer: 'Yes. The failed income condition blocks eligibility, even with sufficient GPA.',
+          evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], modelKeys: ['income_failure'], verdict: 'sat' },
+        },
+      },
     ],
   },
 
@@ -327,6 +405,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_graph_001', worldId: '_',
+        logic: 'QF_UF',
         source: src('network_topology', 100),
         declarations: [
           { kind: 'sort', name: 'Node' },
@@ -359,13 +438,17 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_reach_direct', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'a', sort: 'Node' }, { name: 'b', sort: 'Node' }],
-              body: { op: '=>', args: [
-                { op: 'and', args: [
-                  { op: 'call', symbol: 'edge', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
-                  { op: 'not', arg: { op: 'call', symbol: 'blocked', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] } },
-                ]},
-                { op: 'call', symbol: 'reachable', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  {
+                    op: 'and', args: [
+                      { op: 'call', symbol: 'edge', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
+                      { op: 'not', arg: { op: 'call', symbol: 'blocked', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] } },
+                    ]
+                  },
+                  { op: 'call', symbol: 'reachable', args: [{ op: 'var', name: 'a' }, { op: 'var', name: 'b' }] },
+                ]
+              },
             },
           },
         ],
@@ -386,6 +469,17 @@ export const DEMO_SCENARIOS = [
           evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003', 'frag_00004'], modelKeys: ['blocked_API_DB'], verdict: 'sat' },
         },
       },
+      {
+        prompt: 'Given direct reachability requires edge and not blocked, does blocking only API→DB break Internet→DB reachability in this model?',
+        formalTarget: 'Path interruption via mandatory blocked hop.',
+        simulatedResult: {
+          verdict: 'sat',
+          interpretation: 'not-entailed',
+          reasoning: 'All shown paths to Database pass through API->DB.\nThat edge is blocked, so direct reachability condition fails at final hop.',
+          answer: 'Yes, blocking API→DB prevents proving Internet→DB reachability.',
+          evidence: { fragmentIds: ['frag_00003', 'frag_00004', 'frag_00005'], modelKeys: ['blocked_hop'], verdict: 'sat' },
+        },
+      },
     ],
   },
 
@@ -397,6 +491,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_contract_001', worldId: '_',
+        logic: 'QF_LIA',
         source: src('contract_doc', 60),
         declarations: [
           { kind: 'function', name: 'deliveryDay', argSorts: [], resultSort: 'Int' },
@@ -428,6 +523,17 @@ export const DEMO_SCENARIOS = [
           evidence: { unsatCoreIds: ['clause_a', 'clause_b'], verdict: 'unsat' },
         },
       },
+      {
+        prompt: 'Can any deliveryDay satisfy both constraints deliveryDay<=5 and deliveryDay>=10 at once?',
+        formalTarget: 'Feasibility check for intersecting numeric bounds.',
+        simulatedResult: {
+          verdict: 'unsat',
+          interpretation: 'inconsistent',
+          reasoning: 'Upper bound 5 and lower bound 10 have empty intersection over integers.',
+          answer: 'No. The constraints are mutually exclusive.',
+          evidence: { unsatCoreIds: ['clause_a', 'clause_b'], verdict: 'unsat' },
+        },
+      },
     ],
   },
 
@@ -439,6 +545,7 @@ export const DEMO_SCENARIOS = [
     knowledge: [
       {
         schemaVersion: V, proposalId: 'fp_onto_001', worldId: '_',
+        logic: 'QF_UF',
         source: src('type_defs', 50),
         declarations: [
           { kind: 'sort', name: 'Entity' },
@@ -452,20 +559,24 @@ export const DEMO_SCENARIOS = [
             assertionId: 'ax_bird_animal', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'x', sort: 'Entity' }],
-              body: { op: '=>', args: [
-                { op: 'call', symbol: 'isBird', args: [{ op: 'var', name: 'x' }] },
-                { op: 'call', symbol: 'isAnimal', args: [{ op: 'var', name: 'x' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  { op: 'call', symbol: 'isBird', args: [{ op: 'var', name: 'x' }] },
+                  { op: 'call', symbol: 'isAnimal', args: [{ op: 'var', name: 'x' }] },
+                ]
+              },
             },
           },
           {
             assertionId: 'ax_animal_compliant', role: 'axiom',
             expr: {
               op: 'forall', vars: [{ name: 'x', sort: 'Entity' }],
-              body: { op: '=>', args: [
-                { op: 'call', symbol: 'isAnimal', args: [{ op: 'var', name: 'x' }] },
-                { op: 'call', symbol: 'isCompliant', args: [{ op: 'var', name: 'x' }] },
-              ]},
+              body: {
+                op: '=>', args: [
+                  { op: 'call', symbol: 'isAnimal', args: [{ op: 'var', name: 'x' }] },
+                  { op: 'call', symbol: 'isCompliant', args: [{ op: 'var', name: 'x' }] },
+                ]
+              },
             },
           },
           {
@@ -487,6 +598,17 @@ export const DEMO_SCENARIOS = [
           interpretation: 'entailed',
           reasoning: 'Chain: isBird(Penguin) → isAnimal(Penguin) → isCompliant(Penguin).\nFact: isBird(Penguin).\nFirst axiom fires: isAnimal(Penguin).\nSecond axiom fires: isCompliant(Penguin).\nRefutation of ¬isCompliant(Penguin) yields unsat.',
           answer: 'Yes, Penguin is compliant. The solver traced through the subclass chain: Bird → Animal → Compliant.',
+          evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], unsatCoreIds: ['ax_bird_animal', 'ax_animal_compliant', 'fact_penguin'], verdict: 'unsat' },
+        },
+      },
+      {
+        prompt: 'Can we justify compliance of Penguin through the full chain Bird -> Animal -> Compliant instead of a direct rule?',
+        formalTarget: 'Multi-hop entailment explanation over subclass chain.',
+        simulatedResult: {
+          verdict: 'unsat',
+          interpretation: 'entailed',
+          reasoning: 'No direct bird->compliant rule needed.\nBird fact plus two implications derive compliant transitively.',
+          answer: 'Yes. Compliance is proven via transitive reasoning across two axioms.',
           evidence: { fragmentIds: ['frag_00001', 'frag_00002', 'frag_00003'], unsatCoreIds: ['ax_bird_animal', 'ax_animal_compliant', 'fact_penguin'], verdict: 'unsat' },
         },
       },

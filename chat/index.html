@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HoloProof Chat — Formal Reasoning Assistant</title>
   <meta name="description" content="Interactive chat interface for HoloProof, a hybrid AI system that combines formal methods with natural language interaction." />
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,9 +17,17 @@
     <!-- Header -->
     <header class="header">
       <h1>⬡ HoloProof</h1>
-      <span class="tag">Demo Mode</span>
+      <span class="tag">Server Runtime</span>
+      <div class="quick-model">
+        <label for="quickModelSelect">LLM</label>
+        <select id="quickModelSelect" aria-label="LLM mode">
+          <option value="llm-fast-default">Fast</option>
+          <option value="llm-deep-default">Deep</option>
+        </select>
+      </div>
+      <span class="llm-status" id="llmStatus">LLM: ready</span>
       <div class="world-info" id="worldInfo">
-        <span>world_chat</span> · registry v<span>0</span>
+        <span id="sessionInfo">session: -</span> · <span id="worldInfoText">world: -</span>
       </div>
     </header>
 
@@ -59,7 +68,24 @@
       <div class="sidebar-divider"></div>
 
       <button class="sidebar-btn" id="resetBtn">
-        🔄 Reset World
+        🔄 New Session
+      </button>
+
+      <button class="sidebar-btn" id="saveSessionBtn">
+        💾 Save Session
+      </button>
+
+      <div class="strategy-group">
+        <label>
+          Saved Sessions
+          <select id="savedSessionSelect">
+            <option value="">No saved snapshots</option>
+          </select>
+        </label>
+      </div>
+
+      <button class="sidebar-btn" id="loadSessionBtn">
+        📂 Load Selected Snapshot
       </button>
     </aside>
 
@@ -70,7 +96,6 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chat">💬 Chat</button>
         <button class="tab-btn" data-tab="examples">📝 Examples</button>
-        <button class="tab-btn" data-tab="knowledge">📚 Knowledge</button>
       </nav>
 
       <!-- Chat tab -->
@@ -78,31 +103,34 @@
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-area">
           <input type="text" id="chatInput" placeholder="Ask a question about the loaded knowledge…" autocomplete="off" />
+          <button id="stopBtn" class="stop-btn" disabled>Stop</button>
           <button id="sendBtn">Send</button>
         </div>
       </div>
 
       <!-- Examples tab -->
       <div class="tab-panel" id="tab-examples">
+        <div class="examples-header">
+          <h2>Examples (Knowledge + Question + Expected Result)</h2>
+          <p>Each card is end-to-end: it loads the needed knowledge into this world, posts the question in chat, then runs formal reasoning.</p>
+        </div>
         <div class="examples-grid" id="examplesGrid"></div>
       </div>
 
-      <!-- Knowledge tab -->
-      <div class="tab-panel" id="tab-knowledge">
-        <div class="knowledge-panel">
-          <div>
-            <h2 style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8891a8; margin-bottom: 8px;">
-              Demo Scenarios
-            </h2>
-            <p style="font-size: 0.82rem; color: #5a6378; margin-bottom: 12px;">
-              Load a scenario to populate the world with knowledge. Then switch to Chat and ask questions.
-            </p>
-          </div>
-          <div class="scenario-cards" id="scenarioCards"></div>
-        </div>
-      </div>
-
     </section>
+  </div>
+
+  <div class="tech-modal" id="techModal" aria-hidden="true">
+    <div class="tech-modal-card">
+      <div class="tech-modal-header">
+        <h3>Technical Details</h3>
+        <button id="techModalClose" class="icon-btn" title="Close">✕</button>
+      </div>
+      <pre id="techModalPre"></pre>
+      <div class="tech-modal-footer">
+        <button id="techModalDismiss" class="sidebar-btn">Close</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="app.mjs"></script>

@@ -10,7 +10,7 @@ import {
   VSA_REPRESENTATIONS,
 } from './constants.mjs';
 import { buildRunEvalUsageText, createRunEvalDefaults, parseRunEvalArgs } from './args.mjs';
-import { loadCaseIdsFromPlan, selectSmokeCases } from './cases.mjs';
+import { loadCaseIdsWithFallback, selectSmokeCases } from './cases.mjs';
 import { buildCombinations } from './combinations.mjs';
 import { discoverLLMProfiles } from './llmProfiles.mjs';
 import { runOneCase } from './runner.mjs';
@@ -42,7 +42,11 @@ export async function runEvalCli(options = {}) {
     ? REGISTRY_CONTEXT_STRATEGIES
     : [REGISTRY_CONTEXT_DISABLED];
 
-  const allCaseIds = await loadCaseIdsFromPlan(args.plan);
+  const caseSource = await loadCaseIdsWithFallback({
+    casesDir: args.casesDir,
+    planPath: args.plan,
+  });
+  const allCaseIds = caseSource.caseIds;
   const selectedCaseIds = args.mode === 'smoke'
     ? selectSmokeCases(allCaseIds)
     : allCaseIds.slice();
@@ -71,6 +75,7 @@ export async function runEvalCli(options = {}) {
 
   logger.log(`[runEval] Mode: ${args.mode}`);
   logger.log(`[runEval] Cases: ${limitedCaseIds.length}`);
+  logger.log(`[runEval] Case source: ${caseSource.source}`);
   logger.log(`[runEval] Combinations: ${combinations.length}`);
   logger.log(`[runEval] LLM mode: ${args.useLLM ? 'live-llm-generation' : 'cached-smt'}`);
   logger.log(`[runEval] SMT cache: ${args.smtCache}`);
@@ -145,6 +150,8 @@ export async function runEvalCli(options = {}) {
     dryRun,
     runnerCommand: args.runner,
     planPath: args.plan,
+    caseSource: caseSource.source,
+    casesDir: args.casesDir,
     outputDir,
     warnings,
     matrix: {

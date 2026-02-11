@@ -136,3 +136,62 @@ test('WorldManager creates deterministic replay bundle from accepted IR', () => 
   assert.equal(replay.acceptedProposals.length, 1);
   assert.equal(replay.acceptedProposals[0].proposalId, 'fp_replay');
 });
+
+test('WorldManager supports deleteWorld with child protection', () => {
+  const manager = new WorldManager();
+  manager.createWorld('world_main');
+  const snapshot = manager.createSnapshot('world_main', { label: 's1' });
+  manager.forkWorld({
+    fromWorldId: 'world_main',
+    fromSnapshotId: snapshot.snapshotId,
+    newWorldId: 'world_child',
+  });
+
+  const blocked = manager.deleteWorld('world_main');
+  assert.equal(blocked.deleted, false);
+  assert.equal(blocked.reason, 'has-children');
+
+  const deletedChild = manager.deleteWorld('world_child');
+  assert.equal(deletedChild.deleted, true);
+
+  const deletedParent = manager.deleteWorld('world_main');
+  assert.equal(deletedParent.deleted, true);
+});
+
+test('WorldManager exposes registry context and supports export/import', () => {
+  const manager = new WorldManager();
+  manager.createWorld('world_main');
+
+  const proposal = makeValidProposal({ proposalId: 'fp_export' });
+  manager.ingestProposal('world_main', proposal);
+  manager.promoteProposal('world_main', 'fp_export');
+
+  const context = manager.getRegistryContext('world_main', {
+    strategy: 'usage-topk',
+    maxSymbols: 3,
+    queryTerms: 'eligible',
+  });
+  assert.equal(context.strategy, 'usage-topk');
+  assert.ok(context.symbols.length > 0);
+
+  const dump = manager.exportWorld('world_main');
+  const restored = new WorldManager();
+  restored.importWorld(dump);
+
+  const restoredWorld = restored.getWorld('world_main');
+  assert.equal(restoredWorld.proposalCount, 1);
+  assert.equal(restoredWorld.fragmentCount, 2);
+});
+
+test('WorldManager promoteProposalAsync supports async sanity checks', async () => {
+  const manager = new WorldManager();
+  manager.createWorld('world_main');
+  const proposal = makeValidProposal({ proposalId: 'fp_async' });
+  manager.ingestProposal('world_main', proposal);
+
+  const promoted = await manager.promoteProposalAsync('world_main', 'fp_async', {
+    solverSanityCheck: async () => ({ ok: true }),
+  });
+
+  assert.equal(promoted.state, 'accepted');
+});

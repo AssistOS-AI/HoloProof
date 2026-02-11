@@ -29,6 +29,26 @@ Interactive usage and prompting guide:
 
 The guide includes a two-tab demo (`Chat` and `Examples`) with 30 diverse examples and recommended prompt formulations for stronger NL-to-formal translation quality.
 
+## Chat Server (Node.js + SSE)
+
+The chat runtime is server-executed and uses Server-Sent Events (SSE).  
+Each browser tab creates a fresh server session. Browser refresh creates a new session ID by design.
+
+Run:
+
+```bash
+npm run chat:server
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8787
+```
+
+Session snapshots can be saved and restored from the UI.  
+LLM access stays server-side (AchillesAgentLib is loaded only on server), so API keys are never sent to client code.
+
 ## Documentation Map
 
 Main documentation index:

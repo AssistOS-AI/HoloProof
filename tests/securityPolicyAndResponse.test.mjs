@@ -60,5 +60,5 @@ test('validateAnchoredExplanation accepts only claims anchored to known evidence
 
 test('buildVerdictNarrationPrefix returns uncertainty framing for unknown verdict', () => {
   const prefix = buildVerdictNarrationPrefix('unknown');
-  assert.ok(prefix.toLowerCase().includes('available formalization'));
+  assert.ok(prefix.toLowerCase().includes('inconclusive'));
 });

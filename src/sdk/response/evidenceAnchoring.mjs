@@ -90,12 +90,12 @@ export function validateAnchoredExplanation(explanation, evidence, options = {})
 export function buildVerdictNarrationPrefix(verdict) {
   switch (verdict) {
     case 'sat':
-      return 'Solver evidence indicates:';
+      return 'I checked the formal model:';
     case 'unsat':
-      return 'Solver contradiction evidence indicates:';
+      return 'I checked the formal proof obligations:';
     case 'unknown':
-      return 'Based on available formalization and solver limits:';
+      return 'I ran formal reasoning, but the result is still inconclusive:';
     default:
-      return 'Based on available solver evidence:';
+      return 'Here is what the formal reasoning shows:';
   }
 }

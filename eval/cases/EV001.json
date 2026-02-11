@@ -1,0 +1,7 @@
+{
+  "caseId": "EV001",
+  "track": "T1",
+  "title": "Simple entailment baseline",
+  "input": "If all students are eligible and Ana is a student, is Ana eligible?",
+  "expectedVerdict": "entailed"
+}

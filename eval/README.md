@@ -18,6 +18,8 @@ node eval/runEval.mjs --mode smoke
 
 Default plan source is `docs/specs/DS010-Evaluation-Suite-Plan.md`.
 
+Default structured case source is `eval/cases/` (JSON files). If no structured files are found, runner falls back to case IDs extracted from plan markdown.
+
 Smoke uses a deterministic stratified subset (20 cases, two per track).
 
 Full matrix over all strategy combinations:
@@ -36,6 +38,12 @@ Run live LLM generation mode (instead of cached SMT mode):
 
 ```bash
 node eval/runEval.mjs --mode smoke --llm --runner "node src/eval/executeCase.mjs"
+```
+
+Force case source directory explicitly:
+
+```bash
+node eval/runEval.mjs --mode smoke --cases-dir eval/cases
 ```
 
 List combinations and cases without executing:

@@ -1,16 +1,27 @@
 import { DEFAULT_LLM_DISCOVERY_FALLBACK } from './constants.mjs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export const DEFAULT_ACHILLES_MODULE_CANDIDATES = [
   'achillesAgentLib/utils/LLMClient.mjs',
   'AchillesAgentLib/utils/LLMClient.mjs',
-  '../../AchillesAgentLib/utils/LLMClient.mjs',
+  '../../../../AchillesAgentLib/utils/LLMClient.mjs',
 ];
+
+function buildAbsoluteFallbackCandidates() {
+  const cwd = process.cwd();
+  return [
+    path.resolve(cwd, '../AchillesAgentLib/utils/LLMClient.mjs'),
+    path.resolve(cwd, 'AchillesAgentLib/utils/LLMClient.mjs'),
+  ].map((filePath) => pathToFileURL(filePath).href);
+}
 
 export async function importAchillesLLMClient(
   moduleCandidates = DEFAULT_ACHILLES_MODULE_CANDIDATES,
   importFn = (modulePath) => import(modulePath),
 ) {
-  for (const candidate of moduleCandidates) {
+  const allCandidates = [...moduleCandidates, ...buildAbsoluteFallbackCandidates()];
+  for (const candidate of allCandidates) {
     try {
       if (candidate.startsWith('.')) {
         const moduleUrl = new URL(candidate, import.meta.url);

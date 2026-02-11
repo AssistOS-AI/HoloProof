@@ -3,6 +3,7 @@ import path from 'node:path';
 export function createRunEvalDefaults(projectRoot) {
   return {
     planPath: path.resolve(projectRoot, 'docs/specs/DS010-Evaluation-Suite-Plan.md'),
+    casesDir: path.resolve(projectRoot, 'eval/cases'),
     outputBase: path.resolve(projectRoot, 'eval/results'),
     smtCacheDir: path.resolve(projectRoot, 'eval/cache/smt'),
   };
@@ -18,6 +19,7 @@ Options:
   --mode <smoke|all>     Execution profile (default: smoke)
   --runner <command>     External runner command executed per case+combination
   --plan <path>          Case plan markdown path (default: docs/specs/DS010-Evaluation-Suite-Plan.md)
+  --cases-dir <path>     Structured case directory (default: eval/cases, fallback to --plan)
   --output <dir>         Output directory (default: eval/results/<timestamp>)
   --smt-cache <dir>      SMT cache directory (default: eval/cache/smt)
   --llm                  Enable live LLM generation mode (default uses cached SMT artifacts)
@@ -55,6 +57,7 @@ export function parseRunEvalArgs(argv, options = {}) {
     mode: 'smoke',
     runner: null,
     plan: defaults.planPath,
+    casesDir: defaults.casesDir,
     output: null,
     smtCache: defaults.smtCacheDir,
     useLLM: false,
@@ -106,6 +109,13 @@ export function parseRunEvalArgs(argv, options = {}) {
       const value = readValue();
       if (value) {
         args.plan = path.resolve(projectRoot, value);
+      }
+      continue;
+    }
+    if (key === '--cases-dir') {
+      const value = readValue();
+      if (value) {
+        args.casesDir = path.resolve(projectRoot, value);
       }
       continue;
     }

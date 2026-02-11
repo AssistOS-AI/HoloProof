@@ -1,3 +1,5 @@
+import { applyTraceAccessPolicy } from './accessPolicy.mjs';
+
 function toIso(value) {
   return new Date(value).toISOString();
 }
@@ -41,4 +43,9 @@ export function applyTracePolicy(rawTrace, worldPolicy = {}) {
   }
 
   return trace;
+}
+
+export function applyTracePolicyForActor(rawTrace, worldPolicy = {}, actor = {}) {
+  const trace = applyTracePolicy(rawTrace, worldPolicy);
+  return applyTraceAccessPolicy(trace, actor);
 }

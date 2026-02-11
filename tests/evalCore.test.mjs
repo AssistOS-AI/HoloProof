@@ -7,6 +7,9 @@ import {
   buildCombinations,
   buildSummaryCsv,
   extractCaseIdsFromMarkdown,
+  loadCaseIdsFromStructuredCases,
+  loadCaseIdsWithFallback,
+  loadStructuredCaseDefinitions,
   maybeParseRunnerJson,
   parseRunEvalArgs,
   selectSmokeCases,
@@ -17,6 +20,23 @@ import {
 test('extractCaseIdsFromMarkdown returns unique sorted case IDs', () => {
   const text = 'EV010 EV002 EV002 EV001';
   assert.deepEqual(extractCaseIdsFromMarkdown(text), ['EV001', 'EV002', 'EV010']);
+});
+
+test('structured case loaders parse JSON case files and fallback correctly', async () => {
+  const definitions = await loadStructuredCaseDefinitions('eval/cases');
+  assert.ok(definitions.length > 0);
+  assert.ok(definitions.every((item) => /^EV\d{3}$/.test(item.caseId)));
+
+  const caseIds = await loadCaseIdsFromStructuredCases('eval/cases');
+  assert.deepEqual(caseIds, definitions.map((item) => item.caseId));
+
+  const fallback = await loadCaseIdsWithFallback({
+    casesDir: 'eval/cases',
+    planPath: 'docs/specs/DS010-Evaluation-Suite-Plan.md',
+  });
+  assert.equal(fallback.source, 'structured-plus-plan');
+  assert.ok(fallback.caseIds.length >= caseIds.length);
+  assert.ok(fallback.caseIds.includes('EV001'));
 });
 
 test('selectSmokeCases returns stratified subset when available', () => {
@@ -58,7 +78,7 @@ test('buildCombinations expands matrix with registry context strategies when ena
 
 test('parseRunEvalArgs parses key options correctly', () => {
   const args = parseRunEvalArgs(
-    ['--mode', 'all', '--llm', '--max-cases', '10', '--smt-cache', 'eval/cache/custom'],
+    ['--mode', 'all', '--llm', '--max-cases', '10', '--smt-cache', 'eval/cache/custom', '--cases-dir', 'eval/cases'],
     { projectRoot: '/workspace/proj' },
   );
 
@@ -66,6 +86,7 @@ test('parseRunEvalArgs parses key options correctly', () => {
   assert.equal(args.useLLM, true);
   assert.equal(args.maxCases, 10);
   assert.equal(args.smtCache, '/workspace/proj/eval/cache/custom');
+  assert.equal(args.casesDir, '/workspace/proj/eval/cases');
 });
 
 test('maybeParseRunnerJson reads the last valid JSON status line', () => {

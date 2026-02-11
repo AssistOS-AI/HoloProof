@@ -10,6 +10,14 @@ Interactive collaboration can be in Romanian or English.
 
 All persistent project artifacts must be in English only. This rule applies to source code, code comments, Markdown documentation, HTML documentation, design specifications, and any user-facing static content stored in the repository.
 
+## Code Size and Maintainability Standard
+
+All code and UI files (`.mjs`, `.js`, `.css`, `.html`) should be ideally under 500 lines and must stay under 700 lines.
+
+Run `fileSizesCheck.sh` during development and before finalizing changes.
+
+If any file violates the limit, refactor immediately through modularization and clean separation of responsibilities. Keep coding style clear, consistent, and maintainable for long-term use.
+
 ## Specification Map
 
 The project specification map is organized under `docs/specs/` and currently includes:
@@ -39,6 +47,8 @@ Documentation entry points:
 HoloProof is strategy-oriented and should support multiple interchangeable backends where possible.
 
 Core implementation lives in `src/` as a mini SDK. Runtime entry points (evaluation CLI and future chat runtime) must consume SDK exports instead of re-implementing core domain logic inline.
+
+Chat runtime policy: the browser is UI-only. Session state, orchestration, solver execution, and LLM calls run on server-side Node.js runtime (`chat/server.mjs`) with SSE updates. No API keys or direct LLM provider calls are allowed from client code.
 
 For formal reasoning, keep a common adapter interface and allow at least `z3` and `cvc5` implementations.
 

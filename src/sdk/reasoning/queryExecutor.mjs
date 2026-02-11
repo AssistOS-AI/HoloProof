@@ -1,6 +1,7 @@
 import { collectReferencedSymbols } from '../formalProposal.mjs';
 import { decideExpansion } from './expansionPolicy.mjs';
 import { emitAssertionSmt, emitNegatedGoalAssertion } from '../solver/smtEmitter.mjs';
+import { checkComplexityBudget, evaluateReasoningComplexity } from './complexityGuard.mjs';
 
 function positiveInteger(value, fallback) {
   return Number.isInteger(value) && value > 0 ? value : fallback;
@@ -20,6 +21,15 @@ function toFragmentAssertion(fragment) {
 
 function uniqueSorted(values) {
   return [...new Set(values)].sort();
+}
+
+function throwIfAborted(signal) {
+  if (!signal?.aborted) {
+    return;
+  }
+  const error = new Error('Query execution was cancelled.');
+  error.name = 'AbortError';
+  throw error;
 }
 
 function collectSymbolsFromFragments(fragments) {
@@ -134,27 +144,40 @@ function applyIntuitionRanking({
   };
 }
 
-async function runSingleRound({ solverAdapter, sessionId, verificationMode, goal, activeFragments, timeoutMs }) {
+async function runSingleRound({
+  solverAdapter,
+  sessionId,
+  verificationMode,
+  goal,
+  activeFragments,
+  timeoutMs,
+  abortSignal = null,
+}) {
+  throwIfAborted(abortSignal);
   await solverAdapter.push(sessionId);
 
   try {
     for (const fragment of activeFragments) {
+      throwIfAborted(abortSignal);
       await solverAdapter.assert(sessionId, emitAssertionSmt(toFragmentAssertion(fragment), { named: true }), {
         scope: 'transient',
       });
     }
 
     if (verificationMode === 'entailment') {
+      throwIfAborted(abortSignal);
       await solverAdapter.assert(sessionId, emitNegatedGoalAssertion(goal, 'hp_query_negated_goal'), {
         scope: 'transient',
       });
     } else if (verificationMode === 'model-finding') {
+      throwIfAborted(abortSignal);
       await solverAdapter.assert(sessionId, emitAssertionSmt({
         assertionId: 'hp_query_goal',
         expr: goal,
       }, { named: false }), { scope: 'transient' });
     }
 
+    throwIfAborted(abortSignal);
     const check = await solverAdapter.checkSat(sessionId, { timeoutMs });
     let queryVerdict = 'unknown';
 
@@ -182,8 +205,10 @@ async function runSingleRound({ solverAdapter, sessionId, verificationMode, goal
     let unsatCore = null;
 
     if (check.verdict === 'sat') {
+      throwIfAborted(abortSignal);
       model = await solverAdapter.getModel(sessionId);
     } else if (check.verdict === 'unsat') {
+      throwIfAborted(abortSignal);
       unsatCore = await solverAdapter.getUnsatCore(sessionId);
     }
 
@@ -211,6 +236,7 @@ export async function runReasoningQuery(options = {}) {
     registryEntries = [],
     budget = {},
   } = options;
+  const abortSignal = options.abortSignal || null;
 
   if (!solverAdapter || typeof solverAdapter.checkSat !== 'function') {
     throw new Error('runReasoningQuery requires a solverAdapter with checkSat support.');
@@ -219,6 +245,7 @@ export async function runReasoningQuery(options = {}) {
   if (!sessionId) {
     throw new Error('runReasoningQuery requires sessionId.');
   }
+  throwIfAborted(abortSignal);
 
   const verificationMode = normalizeMode(queryPlan?.verificationMode);
   const goal = queryPlan?.goal || null;
@@ -244,6 +271,41 @@ export async function runReasoningQuery(options = {}) {
     rankedFragmentIds || intuitionRanking.rankedFragmentIds || null,
   );
 
+  const complexity = evaluateReasoningComplexity({
+    queryPlan,
+    fragments: ordered,
+  });
+  const complexityCheck = checkComplexityBudget(complexity, budget);
+  if (!complexityCheck.ok) {
+    return {
+      verificationMode,
+      solverVerdict: 'unknown',
+      queryVerdict: 'unknown',
+      timeout: false,
+      model: null,
+      unsatCore: null,
+      activeFragmentIds: [],
+      knowledgeGaps: detectKnowledgeGaps({
+        queryPlan,
+        activeFragments: [],
+        registryEntries,
+      }),
+      rounds: [],
+      intuition: {
+        used: Boolean(options.intuition),
+        diagnostics: intuitionRanking.diagnostics,
+        rankedFragmentIds: intuitionRanking.rankedFragmentIds || rankedFragmentIds || null,
+      },
+      complexity,
+      complexityGuard: {
+        ok: false,
+        violations: complexityCheck.violations,
+        limits: complexityCheck.limits,
+      },
+      totalElapsedMs: 0,
+    };
+  }
+
   const maxRounds = positiveInteger(budget.maxExpansionRounds, 3);
   const expansionStep = positiveInteger(budget.expansionStep, Math.max(1, Math.min(25, ordered.length)));
   const maxActiveAtoms = positiveInteger(budget.maxActiveAtoms, ordered.length || 1);
@@ -255,6 +317,7 @@ export async function runReasoningQuery(options = {}) {
   const rounds = [];
 
   while (round <= maxRounds) {
+    throwIfAborted(abortSignal);
     const cappedActiveCount = Math.min(activeCount, maxActiveAtoms, ordered.length);
     const activeFragments = ordered.slice(0, cappedActiveCount);
     const activeFragmentIds = activeFragments.map((fragment) => fragment.fragmentId);
@@ -271,7 +334,9 @@ export async function runReasoningQuery(options = {}) {
       goal,
       activeFragments,
       timeoutMs,
+      abortSignal,
     });
+    throwIfAborted(abortSignal);
 
     rounds.push({
       round,
@@ -334,6 +399,12 @@ export async function runReasoningQuery(options = {}) {
       used: Boolean(options.intuition),
       diagnostics: intuitionRanking.diagnostics,
       rankedFragmentIds: intuitionRanking.rankedFragmentIds || rankedFragmentIds || null,
+    },
+    complexity,
+    complexityGuard: {
+      ok: true,
+      violations: [],
+      limits: complexityCheck.limits,
     },
     totalElapsedMs: rounds.reduce((sum, item) => sum + (item.elapsedMs || 0), 0),
   };

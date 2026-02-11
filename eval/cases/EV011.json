@@ -1,0 +1,7 @@
+{
+  "caseId": "EV011",
+  "track": "T2",
+  "title": "Consistency baseline",
+  "input": "Check if policy set is internally consistent.",
+  "expectedVerdict": "consistent"
+}
