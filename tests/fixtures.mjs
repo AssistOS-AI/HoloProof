@@ -3,6 +3,7 @@ export function makeValidProposal(overrides = {}) {
     schemaVersion: 'holoproof.formal-proposal.v1',
     proposalId: 'fp_0001',
     worldId: 'world_main',
+    logic: 'QF_UF',
     source: {
       sourceId: 'doc_1',
       span: { start: 0, end: 32 },

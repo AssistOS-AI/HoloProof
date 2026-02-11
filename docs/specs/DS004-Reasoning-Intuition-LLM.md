@@ -52,6 +52,7 @@ Minimal shape:
   "schemaVersion": "holoproof.formal-proposal.v1",
   "proposalId": "fp_000123",
   "worldId": "world_main",
+  "logic": "QF_UF",
   "source": {
     "sourceId": "doc_contract_12",
     "span": { "start": 120, "end": 264 },
@@ -87,7 +88,7 @@ Minimal shape:
 }
 ```
 
-Expression IR is intentionally compact and deterministic. Baseline operators for practical coverage are: `const`, `var`, `call`, `not`, `and`, `or`, `=>`, `=`, arithmetic comparators, and quantifiers (`forall`, `exists`).
+Expression IR is intentionally compact and deterministic. Baseline operators for practical coverage are: `const`, `var`, `call`, `not`, `and`, `or`, `=>`, `=`, arithmetic comparators, `ite`, `distinct`, and quantifiers (`forall`, `exists`).
 
 Identifier grammar is strict: `^[A-Za-z_][A-Za-z0-9_]*$`. Non-matching names are invalid at schema gate.
 
@@ -126,6 +127,30 @@ Two baseline strategies are required:
 Response generation must use explicit claim anchors (fragment IDs, model keys, unsat-core IDs, verdict references). Claims without valid anchors are rejected or stripped before response emission.
 
 Unknown verdict explanations must use uncertainty language and avoid definitive claims beyond approved evidence.
+
+## Knowledge Gap and Error Surfacing
+
+Reasoning output must explicitly report when the active world cannot support a query with sufficient formal evidence.
+
+At minimum, the reasoning payload surfaces:
+
+- missing registry symbols referenced by the query goal,
+- symbols present in registry but unsupported by active fragments,
+- solver execution issues (`timeout`, parser errors, crashed session recovery markers).
+
+These are first-class response inputs, not internal debug-only metadata.
+
+## Response Decision Policy for Missing KB Data
+
+`ResponseDecoder` must apply an explicit decision policy for incomplete knowledge and runtime errors:
+
+- `answer`: emit a normal solver-backed response when evidence is sufficient,
+- `ask-user`: emit targeted clarification questions when symbols/facts are missing or solver errors require user confirmation,
+- `llm-autofill`: generate candidate formal additions with LLM only when policy allows and gap size is within strict bounds.
+
+Auto-filled formal additions are always treated as `proposed` proposals and must pass normal validation gates before becoming `accepted`.
+
+Default-safe behavior is clarification-first (`ask-user`) unless an explicit policy enables and authorizes bounded LLM autofill.
 
 ## Achilles AgentLLM Integration
 

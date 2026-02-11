@@ -36,6 +36,16 @@ test('validateFormalProposal rejects invalid schema version', () => {
   assert.ok(result.errors.some((line) => line.includes('schemaVersion')));
 });
 
+test('validateFormalProposal requires logic field', () => {
+  const proposal = makeValidProposal();
+  delete proposal.logic;
+
+  const result = validateFormalProposal(proposal);
+
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((line) => line.includes('logic')));
+});
+
 test('validateFormalProposal rejects reserved SMT command identifiers', () => {
   const proposal = makeValidProposal({
     declarations: [

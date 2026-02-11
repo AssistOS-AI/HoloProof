@@ -18,7 +18,7 @@ HoloProof is organized around a chat orchestrator and five functional modules.
 
 `QueryEncoder` turns a user question into a formal query plan, including expected verification mode and resource budget.
 
-`ResponseDecoder` transforms validated solver outputs into natural-language answers with explicit references to formal evidence.
+`ResponseDecoder` transforms validated solver outputs into natural-language answers with explicit references to formal evidence, and applies response-decision policy (`answer`, `ask-user`, `llm-autofill`) when KB gaps or runtime errors are surfaced.
 
 `World Manager` maintains world snapshots, lifecycle states for proposals, a versioned symbol registry used by validation/encoding modules, and world-level policy metadata (sensitivity, trace redaction, retention).
 

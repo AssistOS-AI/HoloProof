@@ -18,6 +18,16 @@ The Chat tab must show three information layers for each meaningful assistant tu
 
 The user should be able to run examples directly into chat without losing context. Example playback should appear as real turns, not as hidden metadata.
 
+When knowledge is missing or solver execution fails, the chat turn must include an explicit issue block (for example missing symbols, missing facts, timeout, recovered solver session) before the final answer decision.
+
+Response mode must be visible in the turn metadata:
+
+- `answer`,
+- `ask-user`,
+- `llm-autofill`.
+
+If `llm-autofill` is used, the UI must show that generated additions are provisional and still require normal validation before they can influence accepted world knowledge.
+
 When interactive runtime is implemented, Chat tab logic should call SDK interfaces from `src/sdk/` (world management, proposal lifecycle, reasoning traces) instead of embedding domain rules in UI code.
 
 Controls required for the baseline demonstration mode:

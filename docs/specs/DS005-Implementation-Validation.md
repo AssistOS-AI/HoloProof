@@ -73,6 +73,8 @@ Recovery never replays transient branch assumptions blindly; only committed cont
 
 After recovery, adapter must emit a structured recovery event (`session-recovered`) so orchestrator re-dispatches pending query plans from top-level state instead of silently continuing mid-check.
 
+Solver failures and degraded outcomes must be propagated as structured signals to response orchestration (not hidden behind generic text errors). This includes timeout markers, crash/recovery state, and parse/command failures.
+
 ## Persistence Strategy Contract
 
 Persistence is strategy-based and must not be hard-wired to a single backend in core logic.
@@ -126,3 +128,10 @@ Deterministic replay contracts operate on stored `FormalProposal` IR plus solver
 ## Controlled Risks
 
 The dominant risk is semantic drift in NL-to-formal translation, not subprocess integration. Mitigation is procedural: proposal states, strict validation gates, clarification prompts for ambiguity, and explicit refusal to treat unvalidated LLM output as accepted knowledge.
+
+When knowledge gaps are detected (missing symbols, missing supporting facts, failed solver checks), the system must surface them explicitly and route them through response decision policy:
+
+- ask user for clarification/additional facts,
+- or run bounded LLM autofill only when policy allows.
+
+Any autofill output remains non-authoritative until promoted through standard world validation gates.

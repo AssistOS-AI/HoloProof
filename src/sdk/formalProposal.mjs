@@ -1,4 +1,6 @@
 export const IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const LOGIC_NAME_RE = /^[A-Za-z][A-Za-z0-9_]*$/;
+const RESERVED_PREFIXES = ['hp_internal_'];
 
 const RESERVED_IDENTIFIER_WORDS = new Set([
   'assert',
@@ -36,6 +38,8 @@ export const ALLOWED_EXPR_OPS = new Set([
   '-',
   '*',
   '/',
+  'ite',
+  'distinct',
   'forall',
   'exists',
 ]);
@@ -54,6 +58,7 @@ export function validateFormalProposal(proposal) {
 
   requireStringField(proposal, 'proposalId', errors, isIdentifier);
   requireStringField(proposal, 'worldId', errors, isIdentifier);
+  validateLogic(proposal.logic, errors);
 
   validateSource(proposal.source, errors);
   validateDeclarations(proposal.declarations, errors);
@@ -198,7 +203,13 @@ function validateQueryPlan(queryPlan, errors) {
     errors.push('queryPlan.verificationMode must be entailment, model-finding, or consistency.');
   }
 
-  validateExpr(queryPlan.goal, 'queryPlan.goal', errors);
+  if (queryPlan.verificationMode === 'consistency') {
+    if (queryPlan.goal !== undefined && queryPlan.goal !== null) {
+      validateExpr(queryPlan.goal, 'queryPlan.goal', errors);
+    }
+  } else {
+    validateExpr(queryPlan.goal, 'queryPlan.goal', errors);
+  }
 }
 
 function validateAmbiguities(ambiguities, errors) {
@@ -279,6 +290,24 @@ function validateExpr(expr, path, errors) {
     case 'not':
       validateExpr(expr.arg, `${path}.arg`, errors);
       return;
+    case 'ite':
+      if (!Array.isArray(expr.args) || expr.args.length !== 3) {
+        errors.push(`${path}.args must contain exactly three expressions for operator ite.`);
+        return;
+      }
+      for (let i = 0; i < expr.args.length; i += 1) {
+        validateExpr(expr.args[i], `${path}.args[${i}]`, errors);
+      }
+      return;
+    case 'distinct':
+      if (!Array.isArray(expr.args) || expr.args.length < 2) {
+        errors.push(`${path}.args must include at least two expressions for operator distinct.`);
+        return;
+      }
+      for (let i = 0; i < expr.args.length; i += 1) {
+        validateExpr(expr.args[i], `${path}.args[${i}]`, errors);
+      }
+      return;
     default:
       if (!Array.isArray(expr.args) || expr.args.length === 0) {
         errors.push(`${path}.args must be a non-empty array for operator ${expr.op}.`);
@@ -334,7 +363,24 @@ function isIdentifier(value) {
   if (!IDENTIFIER_RE.test(value)) {
     return false;
   }
-  return !RESERVED_IDENTIFIER_WORDS.has(value.toLowerCase());
+  const normalized = value.toLowerCase();
+  if (RESERVED_IDENTIFIER_WORDS.has(normalized)) {
+    return false;
+  }
+  if (RESERVED_PREFIXES.some((prefix) => normalized.startsWith(prefix))) {
+    return false;
+  }
+  return true;
+}
+
+function validateLogic(logic, errors) {
+  if (typeof logic !== 'string' || !logic.trim()) {
+    errors.push('logic must be a non-empty string.');
+    return;
+  }
+  if (!LOGIC_NAME_RE.test(logic.trim())) {
+    errors.push(`logic has invalid value "${logic}".`);
+  }
 }
 
 function isRecord(value) {
