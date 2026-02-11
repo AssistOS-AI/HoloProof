@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This design specification defines the first evaluation suite for HoloProof under `evals/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, VSA strategy, Intuition implementation strategy, and LLM profile.
+This design specification defines the first evaluation suite for HoloProof under `evals/`. The objective is to demonstrate capability breadth and comparative runtime behavior across strategy combinations: SMT solving strategy, Intuition strategy, VSA/HDC representation strategy, and LLM profile.
 
 ## Suite Structure
 
@@ -28,8 +28,8 @@ The evaluation runner benchmarks combinations, not single strategies.
 Strategy families for matrix generation:
 
 - SMT strategy: backend + solving style, minimum `z3` and `cvc5`.
-- VSA strategy: retrieval/ranking approach (for example HRR cosine, binary HDC hamming, hybrid rerank).
-- Intuition implementation strategy: runtime implementation (for example typed-array single-thread, typed-array worker-thread, optional WASM path).
+- Intuition strategy: `NoIntuition` and `VSAIntuition`.
+- VSA/HDC representation strategy used when intuition is enabled: HRR cosine ranking and Binary HDC Hamming ranking.
 - LLM profile factor: first configured Achilles fast model and first configured Achilles deep model.
 
 LLM selection rule for default runs:
@@ -39,9 +39,9 @@ LLM selection rule for default runs:
 
 ## Combination Profiles
 
-`smoke` profile is a fast confidence pass over default combinations only, intended for local checks and CI preflight.
+`smoke` profile is a fast confidence pass over default combinations only, intended for local checks and CI preflight. It must include both `NoIntuition` and `VSAIntuition`.
 
-`all` profile is a full Cartesian sweep over all configured strategy families. This is used for comparative speed analysis and regression trend tracking.
+`all` profile is a full sweep over all configured strategy families, including both baseline VSA/HDC representations for `VSAIntuition`. This is used for comparative speed analysis and regression trend tracking.
 
 ## Case Catalog
 
@@ -206,6 +206,8 @@ Required behavior:
 
 - run `smoke` profile with default combinations,
 - run `all` profile for full combination sweep,
+- include both Intuition strategies (`NoIntuition`, `VSAIntuition`),
+- include both baseline VSA/HDC representations (HRR and Binary HDC) for `VSAIntuition`,
 - include both Achilles `fast-default` and `deep-default` LLM profiles,
 - emit machine-readable result artifacts under `eval/results/`.
 

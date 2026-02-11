@@ -49,7 +49,7 @@ The script should support two execution profiles:
 
 At minimum, every evaluation run records:
 
-- strategy tuple (SMT + VSA + Intuition implementation + LLM profile),
+- strategy tuple (SMT + Intuition strategy + VSA/HDC representation + LLM profile),
 - pass/fail/unknown/error counts,
 - elapsed timing and average per case,
 - aggregate success rate,

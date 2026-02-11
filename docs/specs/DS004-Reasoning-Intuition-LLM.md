@@ -19,8 +19,8 @@ HoloProof must treat reasoning and retrieval behavior as configurable strategy f
 The evaluation matrix should vary:
 
 - SMT strategy combinations (backend plus solving style), at minimum with both `z3` and `cvc5`.
-- VSA ranking strategies (for example HRR cosine, binary HDC hamming, and hybrid reranking).
-- Intuition implementation strategies (for example typed-array single-thread, typed-array worker-thread, and optional WASM acceleration).
+- Intuition strategy mode: `NoIntuition` and `VSAIntuition`.
+- VSA/HDC representation strategy used by `VSAIntuition`: initial baseline set is HRR cosine ranking and Binary HDC Hamming ranking.
 
 These strategy dimensions are benchmarked jointly, because real performance depends on interaction effects between solver behavior and candidate-selection behavior.
 
