@@ -468,6 +468,23 @@ export class SolverSessionAdapter {
     });
   }
 
+  async command(sessionId, commandText, options = {}) {
+    return this._withSession(sessionId, async (session) => {
+      const command = String(commandText || '').trim();
+      if (!command) {
+        throw new Error('commandText must be a non-empty SMT command string.');
+      }
+
+      const trackStable = options.scope !== 'transient';
+      await this._send(session, command, { trackStable });
+
+      return {
+        ok: true,
+        stable: trackStable,
+      };
+    });
+  }
+
   async checkSat(sessionId, options = {}) {
     return this._withSession(sessionId, async (session) => {
       const start = Date.now();
