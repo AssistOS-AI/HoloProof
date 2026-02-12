@@ -17,7 +17,7 @@ Usage:
 
 Options:
   --mode <smoke|all>     Execution profile (default: smoke)
-  --runner <command>     External runner command executed per case+combination
+  --runner <command>     External runner command executed per case+combination (optional; default is node src/eval/executeCase.mjs if available)
   --plan <path>          Case plan markdown path (default: docs/specs/DS010-Evaluation-Suite-Plan.md)
   --cases-dir <path>     Structured case directory (default: eval/cases, fallback to --plan)
   --output <dir>         Output directory (default: eval/results/<timestamp>)
@@ -43,6 +43,8 @@ Runner contract:
     HP_EVAL_LLM_INVOCATION_MODE
     HP_EVAL_USE_LLM
     HP_EVAL_SMT_CACHE_DIR
+    HP_EVAL_CASES_DIR
+    HP_EVAL_PROJECT_ROOT
 
   If runner prints a JSON object on the last stdout line with { status, verdict?, elapsedMs? },
   it is used directly. Otherwise, exit code 0 maps to status=pass.

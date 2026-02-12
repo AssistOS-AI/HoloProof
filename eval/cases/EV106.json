@@ -1,0 +1,9 @@
+{
+  "caseId": "EV106",
+  "track": "T4",
+  "title": "Chat demo: graph reachability blocked edge",
+  "source": "chat-demo",
+  "scenarioId": "graph-reachability",
+  "problemIndex": 0,
+  "expectedVerdict": "not-entailed"
+}

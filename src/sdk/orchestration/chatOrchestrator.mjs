@@ -298,7 +298,10 @@ export class ChatOrchestrator {
         decisionContext: pipeline.response,
         llmClient: this.llmClient,
         useLLM: input.responseUseLLM === true,
-        mode: input.mode || llmModeFromStrategy(strategy),
+        mode: input.responseMode || input.mode || llmModeFromStrategy(strategy),
+        responseStyle: input.responseStyle || 'neutral',
+        responseCache: input.responseCache || null,
+        queryText: input.text || '',
         policy: input.decoderPolicy || {},
       });
       throwIfAborted(abortSignal);

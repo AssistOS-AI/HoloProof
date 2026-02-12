@@ -1,0 +1,9 @@
+{
+  "caseId": "EV103",
+  "track": "T3",
+  "title": "Chat demo: meeting overlap entailment",
+  "source": "chat-demo",
+  "scenarioId": "scheduling-overlap",
+  "problemIndex": 0,
+  "expectedVerdict": "entailed"
+}

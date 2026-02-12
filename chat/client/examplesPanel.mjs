@@ -15,7 +15,6 @@ function toExampleItems(scenarios = []) {
         scenarioId: scenario.id,
         scenarioTitle: scenario.title,
         category: scenario.category,
-        loadHint: scenario.loadHint,
         knowledgePreview: preview,
         prompt: safeText(problem.prompt),
         expectedAnswer: safeText(problem.expectedAnswer, 'Expected answer depends on current world strategy.'),
@@ -35,7 +34,7 @@ function createPreviewList(preview) {
 
   const list = document.createElement('ul');
   list.className = 'example-list';
-  for (const line of preview.slice(0, 4)) {
+  for (const line of preview) {
     const item = document.createElement('li');
     item.textContent = line;
     list.appendChild(item);
@@ -52,10 +51,6 @@ function createExampleCard(example, index, onRunExample) {
     <div class="example-index">Example ${index + 1}</div>
     <h3>${safeText(example.scenarioTitle, 'Scenario')}</h3>
     <div class="example-block">
-      <div class="example-label">Loads</div>
-      <div class="example-line">${safeText(example.loadHint, 'Loads scenario knowledge into the current world.')}</div>
-    </div>
-    <div class="example-block">
       <div class="example-label">Question</div>
       <div class="prompt-preview">${safeText(example.prompt)}</div>
     </div>
@@ -69,7 +64,7 @@ function createExampleCard(example, index, onRunExample) {
   knowledgeBlock.className = 'example-block';
   const knowledgeLabel = document.createElement('div');
   knowledgeLabel.className = 'example-label';
-  knowledgeLabel.textContent = 'Knowledge Preview';
+  knowledgeLabel.textContent = 'Facts and Rules to Learn';
   knowledgeBlock.appendChild(knowledgeLabel);
   knowledgeBlock.appendChild(createPreviewList(example.knowledgePreview));
   card.appendChild(knowledgeBlock);

@@ -108,6 +108,40 @@ test('encodeQueryProposal normalizes shorthand goal expressions from LLM output'
   assert.equal(encoded.proposal.queryPlan.goal.args[0].name, 'Ana');
 });
 
+test('encodeQueryProposal falls back to registry-aware heuristic when LLM schema is invalid', async () => {
+  const encoded = await encodeQueryProposal({
+    llmClient: fakeClient(JSON.stringify({
+      declarations: [{ name: 'invalid declaration' }],
+      assertions: [],
+      queryPlan: {
+        verificationMode: 'entailment',
+        goal: {
+          predicate: '???',
+          args: [],
+        },
+      },
+      ambiguities: [],
+      tags: ['query'],
+    })),
+    worldId: 'world_main',
+    proposalId: 'fp_q3',
+    question: 'Is Ana a legal heir?',
+    registryContext: {
+      symbols: [
+        { symbol: 'Ana', kind: 'const', arity: 0, argSorts: [], resultSort: 'Person', usageCount: 10 },
+        { symbol: 'legalHeir', kind: 'predicate', arity: 1, argSorts: ['Person'], resultSort: 'Bool', usageCount: 8 },
+      ],
+      sortAliases: [],
+    },
+  });
+
+  assert.equal(encoded.ok, true);
+  assert.equal(encoded.proposal.queryPlan.goal.op, 'call');
+  assert.equal(encoded.proposal.queryPlan.goal.symbol, 'legalHeir');
+  assert.equal(encoded.proposal.queryPlan.goal.args[0].name, 'Ana');
+  assert.ok(encoded.proposal.tags.includes('heuristic-fallback'));
+});
+
 test('decodeResponse filters unanchored claims and keeps anchored defaults', async () => {
   const decoded = await decodeResponse({
     reasoning: {
@@ -143,6 +177,120 @@ test('decodeResponse filters unanchored claims and keeps anchored defaults', asy
   assert.equal(decoded.action, 'answer');
   assert.ok(decoded.claims.some((claim) => claim.text.includes('Anchored')));
   assert.ok(decoded.rejectedClaims.length >= 1);
+});
+
+test('decodeResponse uses LLM fast mode for final natural message', async () => {
+  const calls = [];
+  const llmClient = {
+    async complete(request) {
+      calls.push(request);
+      if (calls.length === 1) {
+        return {
+          text: JSON.stringify({
+            claims: [
+              {
+                text: 'Anchored claim.',
+                anchors: [{ type: 'verdict', id: 'unsat' }],
+              },
+            ],
+          }),
+        };
+      }
+      return {
+        text: JSON.stringify({
+          message: 'Yes, this is proven by the current rules and facts.',
+        }),
+      };
+    },
+  };
+
+  const decoded = await decodeResponse({
+    reasoning: {
+      solverVerdict: 'unsat',
+      queryVerdict: 'entailed',
+      activeFragmentIds: ['frag_001'],
+      unsatCore: ['core_1'],
+      model: null,
+      knowledgeGaps: {
+        missingSymbols: [],
+        lowSupportSymbols: [],
+        missingEvidence: [],
+      },
+    },
+    llmClient,
+    useLLM: true,
+    mode: 'deep',
+    responseStyle: 'legal',
+    queryText: 'Is Ana a legal heir?',
+    policy: {
+      autoFillWithLLM: false,
+    },
+  });
+
+  assert.equal(decoded.message, 'Yes, this is proven by the current rules and facts.');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].mode, 'deep');
+  assert.equal(calls[1].mode, 'fast');
+  assert.ok(calls[1].userPrompt.includes('Requested style: legal'));
+});
+
+test('decodeResponse reuses cached natural response for same SMT outcome and question', async () => {
+  let calls = 0;
+  const llmClient = {
+    async complete() {
+      calls += 1;
+      if (calls % 2 === 1) {
+        return {
+          text: JSON.stringify({
+            claims: [
+              {
+                text: 'Anchored claim.',
+                anchors: [{ type: 'verdict', id: 'unsat' }],
+              },
+            ],
+          }),
+        };
+      }
+      return {
+        text: JSON.stringify({
+          message: 'Yes, this is proven.',
+        }),
+      };
+    },
+  };
+
+  const responseCache = new Map();
+  const input = {
+    reasoning: {
+      solverVerdict: 'unsat',
+      queryVerdict: 'entailed',
+      activeFragmentIds: ['frag_001'],
+      unsatCore: ['core_1'],
+      model: null,
+      knowledgeGaps: {
+        missingSymbols: [],
+        lowSupportSymbols: [],
+        missingEvidence: [],
+      },
+    },
+    llmClient,
+    useLLM: true,
+    mode: 'fast',
+    responseStyle: 'neutral',
+    queryText: 'Is Ana a legal heir?',
+    responseCache,
+    policy: {
+      autoFillWithLLM: false,
+    },
+  };
+
+  const first = await decodeResponse(input);
+  const second = await decodeResponse(input);
+
+  assert.equal(first.message, 'Yes, this is proven.');
+  assert.equal(second.message, 'Yes, this is proven.');
+  assert.equal(calls, 2);
+  assert.equal(responseCache.size, 1);
 });
 
 test('createAchillesLLMClient supports injectable client and import fallback', async () => {

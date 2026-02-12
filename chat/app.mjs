@@ -16,6 +16,7 @@ const state = {
   eventSource: null,
   strategyOptions: null,
   strategy: null,
+  responseStyle: 'neutral',
   scenarios: [],
   loadedScenarioIds: new Set(),
   pendingQuery: false,
@@ -30,6 +31,7 @@ const stopBtn = $('#stopBtn');
 const worldInfoText = $('#worldInfoText');
 const sessionInfo = $('#sessionInfo');
 const quickModelSelect = $('#quickModelSelect');
+const responseStyleSelect = $('#responseStyleSelect');
 const llmStatus = $('#llmStatus');
 function clientLog(level, message, meta = null) {
   const stamp = new Date().toISOString();
@@ -431,8 +433,6 @@ async function loadScenario(scenarioId, options = {}) {
   }
 
   const scenarioMeta = state.scenarios.find((scenario) => scenario.id === scenarioId) || null;
-  const selectedQuestion = options.selectedQuestion || null;
-  const expectedAnswer = options.expectedAnswer || null;
 
   if (!options.force && state.loadedScenarioIds.has(scenarioId)) {
     clientLog('info', 'Scenario already loaded in session, skipping reload', {
@@ -444,10 +444,7 @@ async function loadScenario(scenarioId, options = {}) {
     });
     panel.addGuideMessage({
       title: scenarioMeta?.title || scenarioId,
-      loadHint: scenarioMeta?.loadHint || 'Using already-loaded knowledge in this session.',
       knowledgePreview: scenarioMeta?.knowledgePreview || [],
-      selectedQuestion,
-      expectedAnswer,
     });
     return { ok: true, skipped: true, payload: null };
   }
@@ -460,15 +457,12 @@ async function loadScenario(scenarioId, options = {}) {
     state.loadedScenarioIds.add(scenarioId);
     const allAccepted = payload.acceptedCount === payload.loadedCount;
     panel.addSystemMessage(
-      `Loaded "${payload.title}" (${payload.acceptedCount}/${payload.loadedCount} proposals accepted).`,
+      `Loaded "${payload.title}".`,
       { kind: allAccepted ? 'success' : 'warn', flash: true },
     );
     panel.addGuideMessage({
       title: payload.title,
-      loadHint: payload.loadHint || scenarioMeta?.loadHint || null,
       knowledgePreview: payload.knowledgePreview || scenarioMeta?.knowledgePreview || [],
-      selectedQuestion,
-      expectedAnswer,
     });
     updateWorldInfo(payload.worldInfo);
     return { ok: true, payload };
@@ -505,7 +499,10 @@ async function sendQuery(text) {
   try {
     const payload = await apiRequest(`/api/sessions/${encodeURIComponent(state.sessionId)}/message`, {
       method: 'POST',
-      body: { text },
+      body: {
+        text,
+        responseStyle: state.responseStyle,
+      },
       signal: controller.signal,
     });
 
@@ -576,10 +573,7 @@ function renderExamplesTab() {
   const container = $('#examplesGrid');
   renderExamplesPanel(container, state.scenarios, async (example) => {
     switchTab('chat');
-    const loaded = await loadScenario(example.scenarioId, {
-      selectedQuestion: example.prompt,
-      expectedAnswer: example.expectedAnswer,
-    });
+    const loaded = await loadScenario(example.scenarioId);
     if (!loaded.ok) {
       return;
     }
@@ -676,6 +670,14 @@ if (quickModelSelect) {
       panel.addSystemMessage(`LLM switch failed: ${error.message}`);
       panel.setLlmStatus('error', 'LLM: error');
     }
+  });
+}
+
+if (responseStyleSelect) {
+  responseStyleSelect.value = state.responseStyle;
+  responseStyleSelect.addEventListener('change', () => {
+    state.responseStyle = responseStyleSelect.value || 'neutral';
+    panel.addSystemMessage(`Answer style set to ${state.responseStyle}.`);
   });
 }
 

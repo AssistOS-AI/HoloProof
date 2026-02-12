@@ -1,0 +1,9 @@
+{
+  "caseId": "EV107",
+  "track": "T6",
+  "title": "Chat demo: contradictory contract clauses",
+  "source": "chat-demo",
+  "scenarioId": "contract-clauses",
+  "problemIndex": 0,
+  "expectedVerdict": "inconsistent"
+}

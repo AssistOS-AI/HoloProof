@@ -1,7 +1,7 @@
 {
-  "caseId": "EV001",
+  "caseId": "EV101",
   "track": "T1",
-  "title": "Chat demo baseline: family inheritance entailment",
+  "title": "Chat demo: family inheritance entailment",
   "source": "chat-demo",
   "scenarioId": "family-inheritance",
   "problemIndex": 0,

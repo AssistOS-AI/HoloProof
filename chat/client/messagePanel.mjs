@@ -137,7 +137,7 @@ export function createMessagePanel(options = {}) {
 
     const meta = document.createElement('div');
     meta.className = 'msg-meta';
-    meta.textContent = `${payload.solverVerdict || 'unknown'} • ${payload.queryVerdict || 'unknown'}`;
+    meta.textContent = 'Formal check completed.';
     footer.appendChild(meta);
 
     const actions = document.createElement('div');
@@ -280,25 +280,13 @@ export function createMessagePanel(options = {}) {
     body.className = 'msg-body';
 
     const lines = [];
-    if (guide.title) {
-      lines.push(`Loaded: ${guide.title}`);
-    }
-    if (guide.loadHint) {
-      lines.push(`What was loaded: ${guide.loadHint}`);
-    }
-
     if (Array.isArray(guide.knowledgePreview) && guide.knowledgePreview.length > 0) {
-      lines.push('Knowledge snapshot:');
-      for (const item of guide.knowledgePreview.slice(0, 4)) {
+      lines.push('Please learn and use these rules and facts in this world:');
+      for (const item of guide.knowledgePreview) {
         lines.push(`- ${item}`);
       }
-    }
-
-    if (guide.selectedQuestion) {
-      lines.push(`Question to run: ${guide.selectedQuestion}`);
-    }
-    if (guide.expectedAnswer) {
-      lines.push(`Expected answer: ${guide.expectedAnswer}`);
+    } else {
+      lines.push('No explicit facts were provided for this example.');
     }
 
     body.textContent = lines.join('\n');

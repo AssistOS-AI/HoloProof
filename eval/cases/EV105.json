@@ -1,0 +1,9 @@
+{
+  "caseId": "EV105",
+  "track": "T2",
+  "title": "Chat demo: scholarship eligibility negative entailment",
+  "source": "chat-demo",
+  "scenarioId": "eligibility-threshold",
+  "problemIndex": 0,
+  "expectedVerdict": "not-entailed"
+}

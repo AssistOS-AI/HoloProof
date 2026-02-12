@@ -25,6 +25,7 @@ import {
   buildEncodingErrorPayload,
   summarizeWorld,
 } from './sessionPayloads.mjs';
+import { buildKnowledgeSummary, buildKnowledgePreview } from './scenarioKnowledgeView.mjs';
 
 function nextProposalId(session) {
   session.proposalCounter += 1;
@@ -36,43 +37,11 @@ function nextTurnId(session) {
   return `turn_${String(session.turnCounter).padStart(6, '0')}`;
 }
 
-function buildKnowledgeSummary(scenario) {
-  return scenario.knowledge.reduce((acc, item) => {
-    acc.proposals += 1;
-    acc.declarations += Array.isArray(item.declarations) ? item.declarations.length : 0;
-    acc.assertions += Array.isArray(item.assertions) ? item.assertions.length : 0;
-    return acc;
-  }, {
-    proposals: 0,
-    declarations: 0,
-    assertions: 0,
-  });
-}
-
-function buildKnowledgePreview(scenario) {
-  const preview = [];
-  for (let i = 0; i < scenario.knowledge.length; i += 1) {
-    const proposal = scenario.knowledge[i];
-    const sourceId = proposal.source?.sourceId || `source_${i + 1}`;
-    const declarations = Array.isArray(proposal.declarations) ? proposal.declarations.length : 0;
-    const assertions = Array.isArray(proposal.assertions) ? proposal.assertions.length : 0;
-    const sampleAssertionIds = (proposal.assertions || [])
-      .slice(0, 3)
-      .map((item) => item.assertionId)
-      .filter(Boolean);
-
-    const head = `${sourceId}: ${declarations} declarations, ${assertions} assertions`;
-    const tail = sampleAssertionIds.length > 0 ? ` (${sampleAssertionIds.join(', ')})` : '';
-    preview.push(`${head}${tail}`);
-  }
-  return preview;
-}
-
 function publicScenarios(scenarios) {
   return scenarios.map((scenario) => {
     const knowledgeSummary = buildKnowledgeSummary(scenario);
     const knowledgePreview = buildKnowledgePreview(scenario);
-    const loadHint = `Loads ${knowledgeSummary.proposals} proposal(s), ${knowledgeSummary.assertions} assertion(s), ${knowledgeSummary.declarations} declaration(s).`;
+    const loadHint = 'Loads the scenario declarations and assertions into the current world.';
 
     return {
       id: scenario.id,
@@ -101,6 +70,7 @@ function llmModeFromProfile(llmProfile = '') {
 
 export function createSessionService({ saveDir, scenarios, strategyOptions }) {
   const sessions = new Map();
+  const sharedNaturalResponseCache = new Map();
   let llmClientPromise = null;
 
   async function getServerLLMClient() {
@@ -163,6 +133,7 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
     session.proposalCounter = Number.isInteger(snapshot?.proposalCounter) ? snapshot.proposalCounter : 0;
     session.turnCounter = Number.isInteger(snapshot?.turnCounter) ? snapshot.turnCounter : 0;
     session.activeTurn = null;
+    session.responseCache = sharedNaturalResponseCache;
   }
 
   async function createSession(options = {}) {
@@ -241,13 +212,12 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
     }
 
     const worldInfo = session.worldManager.getWorld(worldId);
-    const knowledgeSummary = buildKnowledgeSummary(scenario);
     const payload = {
       scenarioId,
       title: scenario.title,
       loadedCount: loaded.length,
       acceptedCount: loaded.filter((item) => item.state === 'accepted').length,
-      loadHint: `Loaded ${knowledgeSummary.proposals} proposal(s), ${knowledgeSummary.assertions} assertion(s), ${knowledgeSummary.declarations} declaration(s) into world "${worldId}".`,
+      loadHint: 'Scenario declarations and assertions were loaded into the current world.',
       knowledgePreview: buildKnowledgePreview(scenario),
       worldInfo,
     };
@@ -271,7 +241,7 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
     return payload;
   }
 
-  async function runQuery(session, userText, turnId, abortSignal) {
+  async function runQuery(session, userText, turnId, abortSignal, queryOptions = {}) {
     serverLog('info', 'Query received', {
       sessionId: session.id,
       turnId,
@@ -291,6 +261,10 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
         turnId,
         abortSignal,
         mode,
+        responseUseLLM: true,
+        responseMode: 'fast',
+        responseStyle: queryOptions.responseStyle || 'neutral',
+        responseCache: session.responseCache,
       });
     } catch (error) {
       if (abortSignal?.aborted || isAbortLike(error)) {
@@ -371,7 +345,7 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
     return payload;
   }
 
-  function startQuery(session, text) {
+  function startQuery(session, text, options = {}) {
     const userText = String(text || '').trim();
     if (!userText) {
       throw new Error('Query text cannot be empty.');
@@ -382,12 +356,16 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
 
     const turnId = nextTurnId(session);
     const controller = new AbortController();
+    const queryOptions = {
+      responseStyle: String(options.responseStyle || 'neutral').trim().toLowerCase() || 'neutral',
+    };
 
-    session.history.push({ role: 'user', turnId, text: userText, at: nowIso() });
+    session.history.push({ role: 'user', turnId, text: userText, at: nowIso(), queryOptions });
 
     session.activeTurn = {
       turnId,
       text: userText,
+      queryOptions,
       startedAt: nowIso(),
       controller,
       promise: null,
@@ -399,7 +377,7 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
       at: nowIso(),
     });
 
-    session.activeTurn.promise = runQuery(session, userText, turnId, controller.signal)
+    session.activeTurn.promise = runQuery(session, userText, turnId, controller.signal, queryOptions)
       .catch((error) => {
         serverLog('error', 'Unexpected uncaught query failure', {
           sessionId: session.id,
@@ -589,8 +567,8 @@ export function createSessionService({ saveDir, scenarios, strategyOptions }) {
       return loadScenarioKnowledge(session, scenarioId);
     },
 
-    startQuery(session, text) {
-      return startQuery(session, text);
+    startQuery(session, text, options = {}) {
+      return startQuery(session, text, options);
     },
 
     cancelQuery(session, turnId = null) {

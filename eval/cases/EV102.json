@@ -1,7 +1,7 @@
 {
-  "caseId": "EV005",
+  "caseId": "EV102",
   "track": "T6",
-  "title": "Chat demo baseline: role permission negative entailment",
+  "title": "Chat demo: role permission negative entailment",
   "source": "chat-demo",
   "scenarioId": "access-control",
   "problemIndex": 0,

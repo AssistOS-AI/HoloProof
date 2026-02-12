@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import {
@@ -12,9 +13,12 @@ import {
 } from '../src/index.mjs';
 import { makeValidProposal } from './fixtures.mjs';
 
-test('JsonFilePersistenceAdapter saves and loads world snapshots', async () => {
-  const baseDir = path.join(process.cwd(), 'tests/.tmp-worlds');
-  await fs.rm(baseDir, { recursive: true, force: true });
+test('JsonFilePersistenceAdapter saves and loads world snapshots', async (t) => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'holoproof-worlds-'));
+  const baseDir = path.join(tempRoot, 'worlds');
+  t.after(async () => {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
 
   const manager = new WorldManager();
   manager.createWorld('world_main');

@@ -11,6 +11,14 @@ function pickStrategyUpdates(body = {}) {
   return updates;
 }
 
+function pickResponseStyle(body = {}) {
+  const value = String(body.responseStyle || '').trim().toLowerCase();
+  if (['neutral', 'legal', 'business', 'casual'].includes(value)) {
+    return value;
+  }
+  return 'neutral';
+}
+
 export function createApiRouter({ sessionService }) {
   return {
     async handleApi(request, response, url) {
@@ -85,7 +93,9 @@ export function createApiRouter({ sessionService }) {
       if (request.method === 'POST' && sessionMessageId) {
         const session = sessionService.requireSession(sessionMessageId);
         const body = await readJsonBody(request);
-        const started = sessionService.startQuery(session, body.text || '');
+        const started = sessionService.startQuery(session, body.text || '', {
+          responseStyle: pickResponseStyle(body),
+        });
         return sendJson(response, 202, {
           accepted: true,
           sessionId: session.id,

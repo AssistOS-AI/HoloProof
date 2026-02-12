@@ -1,0 +1,9 @@
+{
+  "caseId": "EV108",
+  "track": "T1",
+  "title": "Chat demo: ontology subclass entailment",
+  "source": "chat-demo",
+  "scenarioId": "type-hierarchy",
+  "problemIndex": 0,
+  "expectedVerdict": "entailed"
+}

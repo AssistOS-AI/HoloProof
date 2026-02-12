@@ -20,6 +20,16 @@ function normalizeUnsatCoreIds(core) {
     .filter(Boolean);
 }
 
+function normalizeStringArray(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return [...new Set(values
+    .map((item) => String(item || '').trim())
+    .filter(Boolean))]
+    .sort();
+}
+
 export function buildReasoningEvidence(reasoning = {}) {
   return {
     verdict: reasoning.solverVerdict || 'unknown',
@@ -31,31 +41,42 @@ export function buildReasoningEvidence(reasoning = {}) {
 
 function defaultClaims(reasoning, evidence) {
   const claims = [];
-  if (reasoning.solverVerdict) {
+  if (reasoning.queryVerdict === 'entailed' && reasoning.solverVerdict === 'unsat') {
     claims.push({
-      text: `Formal solver verdict: ${reasoning.solverVerdict}.`,
-      anchors: [{ type: 'verdict', id: reasoning.solverVerdict }],
+      text: 'Yes, the statement is supported by the current rules and facts.',
+      anchors: [{ type: 'verdict', id: 'unsat' }],
     });
-  }
-
-  if (evidence.fragmentIds.length > 0) {
+  } else if (reasoning.queryVerdict === 'not-entailed' && reasoning.solverVerdict === 'sat') {
     claims.push({
-      text: `I used ${evidence.fragmentIds.length} active knowledge fragment(s) from the current world.`,
-      anchors: [{ type: 'fragment', id: evidence.fragmentIds[0] }],
+      text: 'No, the current rules and facts do not prove that statement.',
+      anchors: [{ type: 'verdict', id: 'sat' }],
+    });
+  } else if (reasoning.solverVerdict === 'unknown') {
+    claims.push({
+      text: 'The result is still inconclusive with the current reasoning budget.',
+      anchors: [{ type: 'verdict', id: 'unknown' }],
+    });
+  } else if (reasoning.solverVerdict) {
+    claims.push({
+      text: `The solver verdict is ${reasoning.solverVerdict}.`,
+      anchors: [{ type: 'verdict', id: reasoning.solverVerdict }],
     });
   }
 
   if (evidence.unsatCoreIds.length > 0) {
     claims.push({
-      text: `The unsat core cites ${evidence.unsatCoreIds.length} named assertion(s).`,
+      text: 'This conclusion follows from a consistent set of active rules and facts.',
       anchors: [{ type: 'core', id: evidence.unsatCoreIds[0] }],
     });
-  }
-
-  if (evidence.modelKeys.length > 0) {
+  } else if (evidence.modelKeys.length > 0) {
     claims.push({
-      text: `The model includes assignments such as "${evidence.modelKeys[0]}".`,
+      text: 'A valid model still exists where the statement does not hold.',
       anchors: [{ type: 'model', id: evidence.modelKeys[0] }],
+    });
+  } else if (evidence.fragmentIds.length > 0) {
+    claims.push({
+      text: 'The answer is based on the active knowledge loaded in this world.',
+      anchors: [{ type: 'fragment', id: evidence.fragmentIds[0] }],
     });
   }
 
@@ -84,30 +105,194 @@ async function llmClaims(llmClient, input = {}) {
     }, null, 2),
   ].join('\n');
 
-  const completion = await llmClient.complete({
-    mode: input.mode || 'fast',
-    systemPrompt: 'Return strict JSON only.',
-    userPrompt: prompt,
-  });
+  try {
+    const completion = await llmClient.complete({
+      mode: input.mode || 'fast',
+      systemPrompt: 'Return strict JSON only.',
+      userPrompt: prompt,
+    });
 
-  const parsed = parseJsonObject(completion?.text || completion);
-  if (!parsed.ok) {
+    const parsed = parseJsonObject(completion?.text || completion);
+    if (!parsed.ok) {
+      return null;
+    }
+    return parsed.value;
+  } catch {
     return null;
   }
-  return parsed.value;
 }
 
-function claimsToText(prefix, claims, fallbackMessage) {
+function claimsToText(claims, fallbackMessage) {
   if (!Array.isArray(claims) || claims.length === 0) {
-    return `${prefix} ${fallbackMessage}`.trim();
+    return String(fallbackMessage || '').trim();
   }
-  const sentence = claims.map((claim) => claim.text).join(' ');
-  return `${prefix} ${sentence}`.trim();
+  return claims.map((claim) => claim.text).join(' ').trim();
+}
+
+function stableSerialize(value) {
+  if (value === null || value === undefined) {
+    return 'null';
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableSerialize(item)).join(',')}]`;
+  }
+  if (typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    const pairs = keys.map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`);
+    return `{${pairs.join(',')}}`;
+  }
+  return JSON.stringify(String(value));
+}
+
+async function cacheGet(cache, key) {
+  if (!cache || !key) {
+    return null;
+  }
+  if (cache instanceof Map) {
+    return cache.get(key) || null;
+  }
+  if (typeof cache.get === 'function') {
+    const value = await cache.get(key);
+    return value ?? null;
+  }
+  return null;
+}
+
+async function cacheSet(cache, key, value) {
+  if (!cache || !key) {
+    return;
+  }
+  if (cache instanceof Map) {
+    cache.set(key, value);
+    return;
+  }
+  if (typeof cache.set === 'function') {
+    await cache.set(key, value);
+  }
+}
+
+function normalizeResponseStyle(style) {
+  const value = String(style || '').trim().toLowerCase();
+  if (['neutral', 'legal', 'business', 'casual'].includes(value)) {
+    return value;
+  }
+  return 'neutral';
+}
+
+function styleGuidance(style) {
+  switch (style) {
+    case 'legal':
+      return 'Use precise legal wording, clear obligations/entitlements, and avoid slang.';
+    case 'business':
+      return 'Use executive/business language focused on decision impact and operational clarity.';
+    case 'casual':
+      return 'Use simple everyday language, short sentences, and approachable tone.';
+    default:
+      return 'Use balanced neutral language that is clear and professional.';
+  }
+}
+
+function buildNaturalResponseCacheKey(input = {}) {
+  return stableSerialize({
+    kind: 'natural-response-v2',
+    queryText: String(input.queryText || '').trim(),
+    solverVerdict: String(input.solverVerdict || 'unknown'),
+    queryVerdict: String(input.queryVerdict || 'unknown'),
+    responseStyle: normalizeResponseStyle(input.responseStyle),
+    evidence: {
+      fragmentIds: normalizeStringArray(input.evidence?.fragmentIds),
+      modelKeys: normalizeStringArray(input.evidence?.modelKeys),
+      unsatCoreIds: normalizeStringArray(input.evidence?.unsatCoreIds),
+    },
+  });
+}
+
+async function llmNaturalMessage(llmClient, input = {}) {
+  if (!llmClient || typeof llmClient.complete !== 'function') {
+    return null;
+  }
+
+  const safeClaims = Array.isArray(input.claims) ? input.claims : [];
+  const responseStyle = normalizeResponseStyle(input.responseStyle);
+  const cacheKey = String(input.cacheKey || '').trim() || buildNaturalResponseCacheKey({
+    queryText: input.queryText,
+    solverVerdict: input.solverVerdict,
+    queryVerdict: input.queryVerdict,
+    responseStyle,
+    evidence: input.evidence,
+  });
+  const cachedValue = await cacheGet(input.responseCache, cacheKey);
+  if (cachedValue && typeof cachedValue.message === 'string' && cachedValue.message.trim()) {
+    return cachedValue.message.trim();
+  }
+
+  const prompt = [
+    'Rewrite the formal result into a natural, human answer for the user.',
+    'Constraints:',
+    '- Use only the evidence-backed claims listed below.',
+    '- Do not mention internal metadata: fragment IDs, unsat core IDs, assertion IDs, world IDs, registry versions, or technical counters.',
+    '- Respond in the same language as the user question.',
+    '- First sentence must directly answer the question.',
+    '- Keep the answer concise (max 4 sentences).',
+    `- Requested style: ${responseStyle}. ${styleGuidance(responseStyle)}`,
+    '',
+    `User question: ${String(input.queryText || '').trim()}`,
+    `Solver verdict: ${String(input.solverVerdict || 'unknown')}`,
+    `Query verdict: ${String(input.queryVerdict || 'unknown')}`,
+    '',
+    'Evidence-backed claims:',
+    ...safeClaims.map((claim, index) => `${index + 1}. ${claim.text}`),
+    '',
+    'Return strict JSON only: {"message":"..."}',
+  ].join('\n');
+
+  try {
+    const completion = await llmClient.complete({
+      mode: 'fast',
+      systemPrompt: 'Return strict JSON only.',
+      userPrompt: prompt,
+    });
+    const parsed = parseJsonObject(completion?.text || completion);
+    if (!parsed.ok || typeof parsed.value?.message !== 'string') {
+      return null;
+    }
+    const message = parsed.value.message.trim();
+    if (message) {
+      await cacheSet(input.responseCache, cacheKey, {
+        message,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    return message || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function decodeResponse(input = {}) {
   const reasoning = input.reasoning || {};
   const evidence = buildReasoningEvidence(reasoning);
+  const responseStyle = normalizeResponseStyle(input.responseStyle);
+  const naturalCacheKey = buildNaturalResponseCacheKey({
+    queryText: input.queryText,
+    solverVerdict: reasoning.solverVerdict,
+    queryVerdict: reasoning.queryVerdict,
+    responseStyle,
+    evidence,
+  });
+  let cachedNaturalMessage = null;
+  if (input.useLLM === true && input.llmClient) {
+    const cached = await cacheGet(input.responseCache || null, naturalCacheKey);
+    if (cached && typeof cached.message === 'string' && cached.message.trim()) {
+      cachedNaturalMessage = cached.message.trim();
+    }
+  }
   const decisionContext = input.decisionContext || buildResponseDecisionContext({
     solverOutcome: {
       verdict: reasoning.solverVerdict,
@@ -123,7 +308,7 @@ export async function decodeResponse(input = {}) {
   };
 
   let candidate = defaultExplanation;
-  if (input.useLLM === true && input.llmClient) {
+  if (!cachedNaturalMessage && input.useLLM === true && input.llmClient) {
     const generated = await llmClaims(input.llmClient, {
       evidence,
       reasoning,
@@ -139,11 +324,28 @@ export async function decodeResponse(input = {}) {
     ? validated.acceptedClaims
     : defaultExplanation.claims;
 
-  const message = claimsToText(
-    decisionContext.narrationPrefix,
+  let message = claimsToText(
     acceptedClaims,
-    'No additional anchored explanation is available.',
+    'I could not generate a fuller explanation, but this answer is still solver-backed.',
   );
+
+  if (cachedNaturalMessage) {
+    message = cachedNaturalMessage;
+  } else if (input.useLLM === true && input.llmClient) {
+    const natural = await llmNaturalMessage(input.llmClient, {
+      queryText: input.queryText,
+      solverVerdict: reasoning.solverVerdict,
+      queryVerdict: reasoning.queryVerdict,
+      claims: acceptedClaims,
+      responseStyle,
+      evidence,
+      cacheKey: naturalCacheKey,
+      responseCache: input.responseCache || null,
+    });
+    if (natural) {
+      message = natural;
+    }
+  }
 
   return {
     action: decisionContext.decision.action,

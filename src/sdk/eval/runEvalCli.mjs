@@ -10,7 +10,7 @@ import {
   VSA_REPRESENTATIONS,
 } from './constants.mjs';
 import { buildRunEvalUsageText, createRunEvalDefaults, parseRunEvalArgs } from './args.mjs';
-import { loadCaseIdsWithFallback, selectSmokeCases } from './cases.mjs';
+import { loadCaseIdsFromStructuredCases, loadCaseIdsWithFallback, selectSmokeCases } from './cases.mjs';
 import { buildCombinations } from './combinations.mjs';
 import { discoverLLMProfiles } from './llmProfiles.mjs';
 import { runOneCase } from './runner.mjs';
@@ -21,6 +21,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const DEFAULT_PROJECT_ROOT = path.resolve(__dirname, '../../..');
+
+const DEFAULT_RUNNER_RELATIVE = 'src/eval/executeCase.mjs';
+
+async function resolveRunnerCommand(argsRunner, projectRoot) {
+  if (typeof argsRunner === 'string' && argsRunner.trim()) {
+    return {
+      command: argsRunner.trim(),
+      source: 'explicit',
+    };
+  }
+
+  const defaultRunnerPath = path.join(projectRoot, DEFAULT_RUNNER_RELATIVE);
+  try {
+    await fs.access(defaultRunnerPath);
+    return {
+      command: `node ${DEFAULT_RUNNER_RELATIVE}`,
+      source: 'auto-default',
+    };
+  } catch {
+    return {
+      command: null,
+      source: 'none',
+    };
+  }
+}
 
 export async function runEvalCli(options = {}) {
   const projectRoot = options.projectRoot || DEFAULT_PROJECT_ROOT;
@@ -46,10 +71,29 @@ export async function runEvalCli(options = {}) {
     casesDir: args.casesDir,
     planPath: args.plan,
   });
-  const allCaseIds = caseSource.caseIds;
+  const runnerResolution = await resolveRunnerCommand(args.runner, projectRoot);
+  const runnerCommand = runnerResolution.command;
+  const usesExecuteCaseRunner = typeof runnerCommand === 'string'
+    && runnerCommand.includes('src/eval/executeCase.mjs');
+
+  let effectiveCaseIds = caseSource.caseIds.slice();
+  let effectiveCaseSource = caseSource.source;
+  if (usesExecuteCaseRunner) {
+    try {
+      const structuredCaseIds = await loadCaseIdsFromStructuredCases(args.casesDir);
+      if (structuredCaseIds.length > 0) {
+        const structuredSet = new Set(structuredCaseIds);
+        effectiveCaseIds = effectiveCaseIds.filter((caseId) => structuredSet.has(caseId));
+        effectiveCaseSource = `${caseSource.source}+structured-only`;
+      }
+    } catch {
+      // Keep initial case source if structured cases cannot be loaded.
+    }
+  }
+
   const selectedCaseIds = args.mode === 'smoke'
-    ? selectSmokeCases(allCaseIds)
-    : allCaseIds.slice();
+    ? selectSmokeCases(effectiveCaseIds)
+    : effectiveCaseIds.slice();
 
   const limitedCaseIds = args.maxCases
     ? selectedCaseIds.slice(0, args.maxCases)
@@ -60,11 +104,13 @@ export async function runEvalCli(options = {}) {
     registryContextDisabled: REGISTRY_CONTEXT_DISABLED,
   });
 
-  const dryRun = args.dryRun || !args.runner;
+  const dryRun = args.dryRun || !runnerCommand;
   const warnings = [];
 
-  if (!args.runner) {
+  if (!runnerCommand) {
     warnings.push('No --runner command was provided; execution is dry-run and case results are marked as skipped.');
+  } else if (!args.runner && runnerResolution.source === 'auto-default') {
+    logger.log(`[runEval] Using default runner: ${runnerCommand}`);
   }
 
   if (args.useLLM && llmProfiles.some((profile) => profile.model.endsWith('-unresolved'))) {
@@ -75,11 +121,11 @@ export async function runEvalCli(options = {}) {
 
   logger.log(`[runEval] Mode: ${args.mode}`);
   logger.log(`[runEval] Cases: ${limitedCaseIds.length}`);
-  logger.log(`[runEval] Case source: ${caseSource.source}`);
+  logger.log(`[runEval] Case source: ${effectiveCaseSource}`);
   logger.log(`[runEval] Combinations: ${combinations.length}`);
   logger.log(`[runEval] LLM mode: ${args.useLLM ? 'live-llm-generation' : 'cached-smt'}`);
   logger.log(`[runEval] SMT cache: ${args.smtCache}`);
-  logger.log(`[runEval] Runner: ${args.runner || 'none (dry-run)'}`);
+  logger.log(`[runEval] Runner: ${runnerCommand || 'none (dry-run)'}`);
   logger.log(`[runEval] Output: ${outputDir}`);
 
   for (const warning of warnings) {
@@ -116,10 +162,13 @@ export async function runEvalCli(options = {}) {
       const outcome = await runOneCase({
         caseId,
         combination,
-        runnerCommand: args.runner,
+        runnerCommand,
         dryRun,
         useLLM: args.useLLM,
         smtCacheDir: args.smtCache,
+        casesDir: args.casesDir,
+        projectRoot,
+        expectJsonStatus: usesExecuteCaseRunner,
         baseEnv: env,
         cwd: projectRoot,
       });
@@ -148,9 +197,10 @@ export async function runEvalCli(options = {}) {
     llmInvocationMode: args.useLLM ? 'live-llm-generation' : 'cached-smt',
     smtCacheDir: args.smtCache,
     dryRun,
-    runnerCommand: args.runner,
+    runnerCommand,
+    runnerSource: runnerResolution.source,
     planPath: args.plan,
-    caseSource: caseSource.source,
+    caseSource: effectiveCaseSource,
     casesDir: args.casesDir,
     outputDir,
     warnings,

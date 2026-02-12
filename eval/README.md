@@ -16,6 +16,10 @@ Smoke matrix with default combinations (dry-run if no runner is provided):
 node eval/runEval.mjs --mode smoke
 ```
 
+If `src/eval/executeCase.mjs` exists, it is auto-selected as default runner.
+If no runner is available, execution falls back to dry-run (all cases skipped).
+When this built-in runner is used, case selection is filtered to structured JSON cases from `eval/cases/`.
+
 Default plan source is `docs/specs/DS010-Evaluation-Suite-Plan.md`.
 
 Default structured case source is `eval/cases/` (JSON files). If no structured files are found, runner falls back to case IDs extracted from plan markdown.
@@ -38,6 +42,12 @@ Run live LLM generation mode (instead of cached SMT mode):
 
 ```bash
 node eval/runEval.mjs --mode smoke --llm --runner "node src/eval/executeCase.mjs"
+```
+
+Run chat-demo-backed cases imported from the chat examples catalog:
+
+```bash
+node eval/runEval.mjs --mode all --runner "node src/eval/executeCase.mjs" --max-cases 8
 ```
 
 Force case source directory explicitly:
@@ -69,6 +79,8 @@ If `--runner` is provided, each case execution receives:
 - `HP_EVAL_LLM_INVOCATION_MODE`
 - `HP_EVAL_USE_LLM`
 - `HP_EVAL_SMT_CACHE_DIR`
+- `HP_EVAL_CASES_DIR`
+- `HP_EVAL_PROJECT_ROOT`
 
 Initial intuition strategy set:
 
@@ -96,6 +108,13 @@ Optional cache directory override:
 ```bash
 node eval/runEval.mjs --mode all --smt-cache eval/cache/smt
 ```
+
+`src/eval/executeCase.mjs` uses two cache layers inside `--smt-cache`:
+
+- prompt-completion cache for NL-to-formal/query encoding prompts,
+- natural-response cache keyed by question + SMT outcome + response style.
+
+If a cache entry exists, the LLM call is skipped and the exact cached response is reused.
 
 ## Outputs
 

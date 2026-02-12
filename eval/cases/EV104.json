@@ -1,7 +1,7 @@
 {
-  "caseId": "EV011",
-  "track": "T6",
-  "title": "Chat demo baseline: contradictory policy detection",
+  "caseId": "EV104",
+  "track": "T2",
+  "title": "Chat demo: contradictory policy consistency check",
   "source": "chat-demo",
   "scenarioId": "policy-conflict",
   "problemIndex": 0,

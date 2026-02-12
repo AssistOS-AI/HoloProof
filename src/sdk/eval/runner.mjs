@@ -29,6 +29,8 @@ export function buildRunnerEnv({
   combination,
   useLLM,
   smtCacheDir,
+  casesDir = null,
+  projectRoot = null,
 }) {
   return {
     ...baseEnv,
@@ -45,6 +47,8 @@ export function buildRunnerEnv({
     HP_EVAL_LLM_INVOCATION_MODE: useLLM ? 'live-llm-generation' : 'cached-smt',
     HP_EVAL_USE_LLM: useLLM ? '1' : '0',
     HP_EVAL_SMT_CACHE_DIR: smtCacheDir,
+    HP_EVAL_CASES_DIR: casesDir || '',
+    HP_EVAL_PROJECT_ROOT: projectRoot || '',
 
     // Backward-compatible aliases
     HP_EVAL_VSA_STRATEGY: combination.vsa.id,
@@ -92,6 +96,9 @@ export async function runOneCase({
   dryRun,
   useLLM,
   smtCacheDir,
+  casesDir,
+  projectRoot,
+  expectJsonStatus = false,
   baseEnv,
   cwd,
 }) {
@@ -112,6 +119,8 @@ export async function runOneCase({
     combination,
     useLLM,
     smtCacheDir,
+    casesDir,
+    projectRoot,
   });
 
   const execution = await runRunnerCommand(runnerCommand, { cwd, env });
@@ -130,6 +139,17 @@ export async function runOneCase({
   }
 
   if (execution.code === 0) {
+    if (expectJsonStatus) {
+      return {
+        status: 'error',
+        verdict: null,
+        elapsedMs: execution.elapsedMs,
+        note: 'Runner exited with 0 but did not emit a JSON status payload.',
+        rawStdout: execution.stdout,
+        rawStderr: execution.stderr,
+      };
+    }
+
     return {
       status: 'pass',
       verdict: null,

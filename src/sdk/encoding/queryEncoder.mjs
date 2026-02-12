@@ -17,6 +17,166 @@ function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function tokenize(text) {
+  return String(text || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+function overlapScore(leftTokens, rightTokens) {
+  if (!Array.isArray(leftTokens) || !Array.isArray(rightTokens)) {
+    return 0;
+  }
+  const left = new Set(leftTokens);
+  let score = 0;
+  for (const token of rightTokens) {
+    if (left.has(token)) {
+      score += 1;
+    }
+  }
+  return score;
+}
+
+function symbolTokens(symbol, semanticHint = null) {
+  return [
+    ...tokenize(symbol),
+    ...tokenize(semanticHint || ''),
+  ];
+}
+
+function firstTokenIndex(haystack, needleTokens) {
+  if (!Array.isArray(haystack) || !Array.isArray(needleTokens) || needleTokens.length === 0) {
+    return -1;
+  }
+  for (let i = 0; i < haystack.length; i += 1) {
+    if (needleTokens.includes(haystack[i])) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function tryHeuristicQueryPlan(question, registryContext = {}) {
+  const questionTokens = tokenize(question);
+  if (questionTokens.length === 0) {
+    return null;
+  }
+
+  if (questionTokens.includes('consistent') || questionTokens.includes('consistency')) {
+    return {
+      verificationMode: 'consistency',
+      goal: null,
+    };
+  }
+
+  const symbols = Array.isArray(registryContext.symbols) ? registryContext.symbols : [];
+  const predicates = symbols.filter((symbol) => (
+    symbol
+    && typeof symbol.symbol === 'string'
+    && ['predicate', 'function'].includes(String(symbol.kind || '').toLowerCase())
+  ));
+  const constants = symbols.filter((symbol) => (
+    symbol
+    && typeof symbol.symbol === 'string'
+    && String(symbol.kind || '').toLowerCase() === 'const'
+  ));
+
+  let bestPredicate = null;
+  let bestScore = 0;
+  for (const candidate of predicates) {
+    const tokens = symbolTokens(candidate.symbol, candidate.semanticHint);
+    const score = overlapScore(questionTokens, tokens);
+    if (score > bestScore) {
+      bestScore = score;
+      bestPredicate = candidate;
+    }
+  }
+
+  if (!bestPredicate || bestScore <= 0) {
+    return null;
+  }
+
+  const arity = Number.isInteger(bestPredicate.arity) && bestPredicate.arity >= 0
+    ? bestPredicate.arity
+    : (Array.isArray(bestPredicate.argSorts) ? bestPredicate.argSorts.length : 0);
+
+  const matchedConstants = constants
+    .map((constant) => {
+      const tokens = symbolTokens(constant.symbol, constant.semanticHint);
+      const score = overlapScore(questionTokens, tokens);
+      const index = firstTokenIndex(questionTokens, tokens);
+      return {
+        symbol: constant.symbol,
+        score,
+        index,
+        usageCount: Number.isInteger(constant.usageCount) ? constant.usageCount : 0,
+      };
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => {
+      if (left.index !== right.index) {
+        return left.index - right.index;
+      }
+      if (left.score !== right.score) {
+        return right.score - left.score;
+      }
+      if (left.usageCount !== right.usageCount) {
+        return right.usageCount - left.usageCount;
+      }
+      return left.symbol.localeCompare(right.symbol);
+    });
+
+  const fallbackConstants = constants
+    .map((constant) => ({
+      symbol: constant.symbol,
+      usageCount: Number.isInteger(constant.usageCount) ? constant.usageCount : 0,
+    }))
+    .sort((left, right) => {
+      if (left.usageCount !== right.usageCount) {
+        return right.usageCount - left.usageCount;
+      }
+      return left.symbol.localeCompare(right.symbol);
+    });
+
+  const selectedArgs = [];
+  for (const item of matchedConstants) {
+    if (selectedArgs.length >= arity) {
+      break;
+    }
+    if (!selectedArgs.includes(item.symbol)) {
+      selectedArgs.push(item.symbol);
+    }
+  }
+
+  for (const item of fallbackConstants) {
+    if (selectedArgs.length >= arity) {
+      break;
+    }
+    if (!selectedArgs.includes(item.symbol)) {
+      selectedArgs.push(item.symbol);
+    }
+  }
+
+  if (selectedArgs.length < arity) {
+    return null;
+  }
+
+  return {
+    verificationMode: 'entailment',
+    goal: {
+      op: 'call',
+      symbol: bestPredicate.symbol,
+      args: selectedArgs.map((symbol) => ({
+        op: 'const',
+        name: symbol,
+      })),
+    },
+  };
+}
+
 function normalizeExpr(expr) {
   if (!isRecord(expr)) {
     return expr;
@@ -136,6 +296,41 @@ export async function encodeQueryProposal(input = {}) {
 
   const parsed = parseJsonObject(completion?.text || completion);
   if (!parsed.ok) {
+    const fallbackPlan = tryHeuristicQueryPlan(question, input.registryContext);
+    if (fallbackPlan) {
+      const fallbackProposal = {
+        schemaVersion: FORMAL_PROPOSAL_SCHEMA_VERSION,
+        proposalId,
+        worldId,
+        logic,
+        source: {
+          sourceId,
+          span: {
+            start: 0,
+            end: question.length,
+          },
+          createdAt,
+        },
+        declarations: [],
+        assertions: [],
+        queryPlan: fallbackPlan,
+        ambiguities: [{
+          type: 'heuristic-fallback',
+          detail: 'LLM query output was not valid JSON.',
+        }],
+        tags: ['query', 'heuristic-fallback'],
+      };
+      const fallbackValidation = validateFormalProposal(fallbackProposal);
+      if (fallbackValidation.valid) {
+        return {
+          ok: true,
+          proposal: fallbackProposal,
+          errors: [],
+          rawText: completion?.text || String(completion || ''),
+        };
+      }
+    }
+
     return {
       ok: false,
       proposal: null,
@@ -169,6 +364,31 @@ export async function encodeQueryProposal(input = {}) {
 
   const validation = validateFormalProposal(proposal);
   if (!validation.valid) {
+    const fallbackPlan = tryHeuristicQueryPlan(question, input.registryContext);
+    if (fallbackPlan) {
+      const fallbackProposal = {
+        ...proposal,
+        declarations: [],
+        assertions: [],
+        queryPlan: fallbackPlan,
+        ambiguities: [{
+          type: 'heuristic-fallback',
+          detail: 'LLM query output failed schema validation.',
+          llmErrors: validation.errors.slice(0, 3),
+        }],
+        tags: [...new Set([...(Array.isArray(proposal.tags) ? proposal.tags : ['query']), 'heuristic-fallback'])],
+      };
+      const fallbackValidation = validateFormalProposal(fallbackProposal);
+      if (fallbackValidation.valid) {
+        return {
+          ok: true,
+          proposal: fallbackProposal,
+          errors: [],
+          rawText: completion?.text || String(completion || ''),
+        };
+      }
+    }
+
     return {
       ok: false,
       proposal,
