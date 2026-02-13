@@ -8,10 +8,17 @@ set -euo pipefail
 #
 # This is meant to quickly spot files that violate the code-size style guide.
 
-YELLOW_THRESHOLD=500
-RED_THRESHOLD=800
-LONG_LINE_THRESHOLD=120
-VERY_LONG_LINE_THRESHOLD=150
+TARGET_DIR="${1:-$PWD}"
+if [[ ! -d "$TARGET_DIR" ]]; then
+  echo "Error: target directory does not exist: $TARGET_DIR" >&2
+  exit 1
+fi
+TARGET_DIR=$(cd "$TARGET_DIR" && pwd)
+cd "$TARGET_DIR"
+
+YELLOW_THRESHOLD="${YELLOW_THRESHOLD:-500}"
+RED_THRESHOLD="${RED_THRESHOLD:-800}"
+VERY_LONG_LINE_THRESHOLD="${VERY_LONG_LINE_THRESHOLD:-300}"
 
 # Color definitions
 if [[ -t 1 ]]; then
@@ -99,9 +106,9 @@ check_very_long_lines() {
   local very_long_lines
   local avg_length
   local first_line
-  very_long_lines=$(awk 'length($0) > 300 {count++} END {print count+0}' "$file")
-  avg_length=$(awk 'length($0) > 300 {total += length($0); count++} END {if (count > 0) print int(total/count); else print 0}' "$file")
-  first_line=$(awk 'length($0) > 300 {print NR; exit}' "$file")
+  very_long_lines=$(awk -v limit="$VERY_LONG_LINE_THRESHOLD" 'length($0) > limit {count++} END {print count+0}' "$file")
+  avg_length=$(awk -v limit="$VERY_LONG_LINE_THRESHOLD" 'length($0) > limit {total += length($0); count++} END {if (count > 0) print int(total/count); else print 0}' "$file")
+  first_line=$(awk -v limit="$VERY_LONG_LINE_THRESHOLD" 'length($0) > limit {print NR; exit}' "$file")
   if [ -z "$first_line" ]; then first_line=0; fi
   echo "$very_long_lines $avg_length $first_line"
 }
@@ -139,16 +146,18 @@ render_oversized_table() {
   local col_lines=7
   local col_size=8
   local col_level=6
-  local col_warn150=8
-  local col_path=$((TERM_COLS - col_lines - col_size - col_level - col_warn150 - 12))
+  local long_col_header=">${VERY_LONG_LINE_THRESHOLD}ch"
+  local col_long=${#long_col_header}
+  if (( col_long < 8 )); then col_long=8; fi
+  local col_path=$((TERM_COLS - col_lines - col_size - col_level - col_long - 12))
   if (( col_path < 25 )); then col_path=25; fi
 
-  printf "%-${col_lines}s | %-${col_size}s | %-${col_level}s | %-${col_warn150}s | %s\n" "Lines" "Size(KB)" "Level" ">300chr" "Path"
-  printf "%-${col_lines}s-+-%-${col_size}s-+-%-${col_level}s-+-%-${col_warn150}s-+-%s\n" \
+  printf "%-${col_lines}s | %-${col_size}s | %-${col_level}s | %-${col_long}s | %s\n" "Lines" "Size(KB)" "Level" "$long_col_header" "Path"
+  printf "%-${col_lines}s-+-%-${col_size}s-+-%-${col_level}s-+-%-${col_long}s-+-%s\n" \
     "$(printf '%*s' "$col_lines" | tr ' ' '-')" \
     "$(printf '%*s' "$col_size" | tr ' ' '-')" \
     "$(printf '%*s' "$col_level" | tr ' ' '-')" \
-    "$(printf '%*s' "$col_warn150" | tr ' ' '-')" \
+    "$(printf '%*s' "$col_long" | tr ' ' '-')" \
     "$(printf '%*s' "$col_path" | tr ' ' '-')"
 
   for entry in "${rows[@]}"; do
@@ -164,7 +173,7 @@ render_oversized_table() {
     local size_kb
     size_kb=$(get_file_size_kb "$file_path")
     
-    local warn150_col=""
+    local long_line_col=""
     if [[ "$file_path" == *.md ]]; then
       local long_info
       long_info=$(check_very_long_lines "$file_path")
@@ -174,12 +183,12 @@ render_oversized_table() {
       first_line=$(echo "$long_info" | cut -d' ' -f3)
       
       if (( very_long_lines > 0 )); then
-        warn150_col="${COLOR_RED}${very_long_lines}${COLOR_RESET}"
+        long_line_col="${COLOR_RED}${very_long_lines}${COLOR_RESET}"
       else
-        warn150_col="${COLOR_GREEN}0${COLOR_RESET}"
+        long_line_col="${COLOR_GREEN}0${COLOR_RESET}"
       fi
     else
-      warn150_col="N/A"
+      long_line_col="N/A"
     fi
 
     local display_path
@@ -189,28 +198,33 @@ render_oversized_table() {
     printf -v num_padded "%6s" "$line_count"
     num_padded=$(colorize_count "$line_count" "$num_padded")
     
-    printf "%-${col_lines}s | %7s | %-${col_level}s | %7s | %s\n" "$num_padded" "${size_kb}" "$level" "$warn150_col" "$display_path"
+    printf "%-${col_lines}s | %7s | %-${col_level}s | %7s | %s\n" "$num_padded" "${size_kb}" "$level" "$long_line_col" "$display_path"
   done
 
   echo ""
 }
 
 # Calculate project size
-echo "=== VSAVM Project File Analysis ==="
+echo "=== File Analysis ==="
+echo
+echo "Target directory: ${TARGET_DIR}"
+echo "Project name: $(basename "$TARGET_DIR")"
 echo
 echo "📊 PROJECT SIZE ANALYSIS"
 echo "========================"
 total_project_size=$(du -sk . 2>/dev/null | cut -f1)
 echo "Total project size: ${total_project_size} KB ($(echo "scale=1; $total_project_size/1024" | bc -l 2>/dev/null || echo "$(($total_project_size/1024))") MB)"
 
-if [ -d "docs" ]; then
-    docs_size=$(du -sk docs 2>/dev/null | cut -f1)
-    echo "Documentation size: ${docs_size} KB ($(echo "scale=1; $docs_size/1024" | bc -l 2>/dev/null || echo "$(($docs_size/1024))") MB)"
-fi
+top_level_dirs=()
+while IFS= read -r -d '' dir; do
+  top_level_dirs+=("$dir")
+done < <(find . -mindepth 1 -maxdepth 1 -type d ! -name ".git" ! -name "node_modules" -print0)
 
-if [ -d "docs/specs" ]; then
-    specs_size=$(du -sk docs/specs 2>/dev/null | cut -f1)
-    echo "Specifications size: ${specs_size} KB ($(echo "scale=1; $specs_size/1024" | bc -l 2>/dev/null || echo "$(($specs_size/1024))") MB)"
+if (( ${#top_level_dirs[@]} > 0 )); then
+  echo "Top-level directories by size:"
+  printf '%s\0' "${top_level_dirs[@]}" | xargs -0 du -sk | sort -nr | head -n 8 | while read -r size_kb path; do
+    printf "  - %-30s %8s KB\n" "${path#./}" "$size_kb"
+  done
 fi
 echo
 
@@ -292,9 +306,9 @@ done
 echo "📋 MARKDOWN LINE LENGTH ANALYSIS"
 echo "================================="
 echo "Total markdown files: ${#md_files[@]}"
-echo "${COLOR_RED}Files with lines >300 chars (ridiculously long): ${total_very_long_lines} lines${COLOR_RESET}"
+echo "${COLOR_RED}Files with lines >${VERY_LONG_LINE_THRESHOLD} chars: ${total_very_long_lines} lines${COLOR_RESET}"
 echo ""
-echo "📄 FILES WITH LINES >300 CHARACTERS:"
+echo "📄 FILES WITH LINES >${VERY_LONG_LINE_THRESHOLD} CHARACTERS:"
 echo "File                                     | Count | Avg Length | First Line"
 echo "-----------------------------------------+-------+------------+-----------"
 for file in "${md_files[@]}"; do
@@ -319,13 +333,13 @@ for file in "${md_files[@]}"; do
   fi
 done
 echo ""
-echo "💡 Note: Only showing files with lines >300 characters"
-echo "   Count = number of lines exceeding 300 chars"
+echo "💡 Note: Only showing files with lines >${VERY_LONG_LINE_THRESHOLD} characters"
+echo "   Count = number of lines exceeding ${VERY_LONG_LINE_THRESHOLD} chars"
 echo "   Avg Length = average character count of those long lines"
 echo "   First Line = line number of first violation (for quick navigation)"
 
 if [ "$total_very_long_lines" -eq 0 ]; then
-    echo "✅ All markdown lines are under 150 characters"
+    echo "✅ All markdown lines are under ${VERY_LONG_LINE_THRESHOLD} characters"
 elif [ "$total_very_long_lines" -lt 50 ]; then
     echo "⚠️  Few long lines - minor readability issues"
 elif [ "$total_very_long_lines" -lt 200 ]; then
